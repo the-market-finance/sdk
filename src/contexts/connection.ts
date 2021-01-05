@@ -1,6 +1,5 @@
 import { KnownToken } from '../utils/utils';
 import { Account, clusterApiUrl, Connection, Transaction, TransactionInstruction } from '@solana/web3.js';
-import { setProgramIds } from '../constants/ids';
 import LocalTokens from '../config/tokens.json';
 
 export type ENV = 'mainnet-beta' | 'testnet' | 'devnet' | 'localnet' | 'lending';

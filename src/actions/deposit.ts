@@ -105,6 +105,7 @@ export const deposit = async (
       message: 'Funds deposited.',
       type: 'success',
       description: `Transaction - ${tx.slice(0, 7)}...${tx.slice(-7)}`,
+      fullDescription: `Transaction - ${tx}`
     };
   } catch {
     // TODO:
