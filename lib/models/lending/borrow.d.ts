@@ -1,6 +1,6 @@
-import { PublicKey, TransactionInstruction } from '@solana/web3.js';
-import BN from 'bn.js';
-import { LendingReserve } from './reserve';
+import { PublicKey, TransactionInstruction } from "@solana/web3.js";
+import BN from "bn.js";
+import { LendingReserve } from "./reserve";
 export declare enum BorrowAmountType {
     LiquidityBorrowAmount = 0,
     CollateralDepositAmount = 1

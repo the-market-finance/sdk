@@ -1,6 +1,6 @@
 /// <reference types="node" />
-import { AccountInfo, PublicKey } from '@solana/web3.js';
-import * as BufferLayout from 'buffer-layout';
+import { AccountInfo, PublicKey } from "@solana/web3.js";
+import * as BufferLayout from "buffer-layout";
 export declare const LendingMarketLayout: typeof BufferLayout.Structure;
 export interface LendingMarket {
     isInitialized: boolean;

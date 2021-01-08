@@ -1,15 +1,18 @@
-import { MintInfo } from '@solana/spl-token';
-import { TokenAccount } from './../models';
-import { PublicKey } from '@solana/web3.js';
-import BN from 'bn.js';
+import { MintInfo } from "@solana/spl-token";
+import { PoolInfo, TokenAccount } from "../models";
+import { PublicKey } from "@solana/web3.js";
+import BN from "bn.js";
 export interface KnownToken {
     tokenSymbol: string;
     tokenName: string;
     icon: string;
     mintAddress: string;
 }
+export declare function getPoolName(map: KnownTokenMap, pool: PoolInfo, shorten?: boolean): string;
+export declare function convert(account?: TokenAccount | number, mint?: MintInfo, rate?: number): number;
 export declare type KnownTokenMap = Map<string, KnownToken>;
 export declare function shortenAddress(address: string, chars?: number): string;
+export declare function getTokenNameSW(map: KnownTokenMap, mintAddress: string, shorten?: boolean, length?: number): string;
 export declare function getTokenName(map: KnownTokenMap, mint?: string | PublicKey, shorten?: boolean): string;
 export declare function getTokenIcon(map: KnownTokenMap, mintAddress?: string | PublicKey): string | undefined;
 export declare function isKnownMint(map: KnownTokenMap, mintAddress: string): boolean;

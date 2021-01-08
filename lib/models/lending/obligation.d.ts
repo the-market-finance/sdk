@@ -1,7 +1,7 @@
 /// <reference types="node" />
-import { AccountInfo, PublicKey } from '@solana/web3.js';
-import BN from 'bn.js';
-import * as BufferLayout from 'buffer-layout';
+import { AccountInfo, PublicKey } from "@solana/web3.js";
+import BN from "bn.js";
+import * as BufferLayout from "buffer-layout";
 export declare const LendingObligationLayout: typeof BufferLayout.Structure;
 export declare const isLendingObligation: (info: AccountInfo<Buffer>) => boolean;
 export interface LendingObligation {

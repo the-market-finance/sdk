@@ -1,4 +1,4 @@
-import BN from 'bn.js';
+import BN from "bn.js";
 
 export const TEN = new BN(10);
 export const WAD = TEN.pow(new BN(18));

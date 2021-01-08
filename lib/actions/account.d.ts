@@ -1,5 +1,5 @@
-import { Account, PublicKey, TransactionInstruction } from '@solana/web3.js';
-import { TokenAccount } from '../models';
+import { Account, PublicKey, TransactionInstruction } from "@solana/web3.js";
+import { TokenAccount } from "../models";
 export declare function ensureSplAccount(instructions: TransactionInstruction[], cleanupInstructions: TransactionInstruction[], toCheck: TokenAccount, payer: PublicKey, amount: number, signers: Account[]): PublicKey;
 export declare const DEFAULT_TEMP_MEM_SPACE = 65528;
 export declare function createTempMemoryAccount(instructions: TransactionInstruction[], payer: PublicKey, signers: Account[], space?: number): PublicKey;

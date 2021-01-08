@@ -1,5 +1,5 @@
-import { Account, Connection, TransactionInstruction } from '@solana/web3.js';
-export declare type ENV = 'mainnet-beta' | 'testnet' | 'devnet' | 'localnet' | 'lending';
+import { Account, Connection, TransactionInstruction } from "@solana/web3.js";
+export declare type ENV = "mainnet-beta" | "testnet" | "devnet" | "localnet" | "lending";
 export declare const ENDPOINTS: {
     name: ENV;
     endpoint: string;

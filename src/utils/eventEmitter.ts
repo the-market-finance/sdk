@@ -1,7 +1,7 @@
-import { EventEmitter as Emitter } from 'eventemitter3';
+import { EventEmitter as Emitter } from "eventemitter3";
 
 export class CacheUpdateEvent {
-  static type = 'CacheUpdate';
+  static type = "CacheUpdate";
   id: string;
   parser: any;
   isNew: boolean;
@@ -12,8 +12,16 @@ export class CacheUpdateEvent {
   }
 }
 
+export class AccountUpdateEvent {
+  static type = "AccountUpdate";
+  id: string;
+  constructor(id: string) {
+    this.id = id;
+  }
+}
+
 export class MarketUpdateEvent {
-  static type = 'MarketUpdate';
+  static type = "MarketUpdate";
   ids: Set<string>;
   constructor(ids: Set<string>) {
     this.ids = ids;
@@ -33,6 +41,16 @@ export class EventEmitter {
     this.emitter.on(CacheUpdateEvent.type, callback);
 
     return () => this.emitter.removeListener(CacheUpdateEvent.type, callback);
+  }
+
+  onAccount(callback: (args: AccountUpdateEvent) => void) {
+    this.emitter.on(AccountUpdateEvent.type, callback);
+
+    return () => this.emitter.removeListener(AccountUpdateEvent.type, callback);
+  }
+
+  raiseAccountUpdated(id: string) {
+    this.emitter.emit(AccountUpdateEvent.type, new AccountUpdateEvent(id));
   }
 
   raiseMarketUpdated(ids: Set<string>) {

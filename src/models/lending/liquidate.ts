@@ -1,9 +1,13 @@
-import { PublicKey, SYSVAR_CLOCK_PUBKEY, TransactionInstruction } from '@solana/web3.js';
-import BN from 'bn.js';
-import { LENDING_PROGRAM_ID, TOKEN_PROGRAM_ID } from '../../constants/ids';
-import { LendingInstruction } from './lending';
-import * as BufferLayout from 'buffer-layout';
-import * as Layout from './../../utils/layout';
+import {
+  PublicKey,
+  SYSVAR_CLOCK_PUBKEY,
+  TransactionInstruction,
+} from "@solana/web3.js";
+import BN from "bn.js";
+import { LENDING_PROGRAM_ID, TOKEN_PROGRAM_ID } from "../../constants/ids";
+import { LendingInstruction } from "./lending";
+import * as BufferLayout from "buffer-layout";
+import * as Layout from "./../../utils/layout";
 
 /// Purchase collateral tokens at a discount rate if the chosen obligation is unhealthy.
 ///
@@ -32,9 +36,12 @@ export const liquidateInstruction = (
   authority: PublicKey,
   dexMarket: PublicKey,
   dexOrderBookSide: PublicKey,
-  memory: PublicKey,
+  memory: PublicKey
 ): TransactionInstruction => {
-  const dataLayout = BufferLayout.struct([BufferLayout.u8('instruction'), Layout.uint64('liquidityAmount')]);
+  const dataLayout = BufferLayout.struct([
+    BufferLayout.u8("instruction"),
+    Layout.uint64("liquidityAmount"),
+  ]);
 
   const data = Buffer.alloc(dataLayout.span);
   dataLayout.encode(
@@ -42,7 +49,7 @@ export const liquidateInstruction = (
       instruction: LendingInstruction.LiquidateObligation,
       liquidityAmount: new BN(liquidityAmount),
     },
-    data,
+    data
   );
 
   const keys = [
