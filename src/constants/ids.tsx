@@ -9,7 +9,7 @@ export let TOKEN_PROGRAM_ID = new PublicKey(
 );
 
 export let LENDING_PROGRAM_ID = new PublicKey(
-  "FEgTndbNvdWKtXYaNnZQ9RD7EwzFy3AEhpkNbdRzFotF"
+  "9M6VDipdEQ8MvruDmgDJu982b7LpLV1PP2T2rrHW61TZ"
 );
 
 // swap data

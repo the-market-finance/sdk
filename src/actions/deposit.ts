@@ -6,8 +6,9 @@ import {
 } from "@solana/web3.js";
 
 import {
+    calculateDepositAPY,
     depositInstruction,
-    initReserveInstruction, LendingReserveParser,
+    initReserveInstruction, isLendingReserve, LendingReserveParser,
 } from "../models/lending";
 import {AccountLayout, Token} from "@solana/spl-token";
 import {LENDING_PROGRAM_ID, programIds, TOKEN_PROGRAM_ID} from "../constants";
@@ -21,7 +22,27 @@ import {sendTransaction} from "../contexts/connection";
 
 import {cache, MintParser, TokenAccountParser} from "../contexts/accounts";
 
-import {fromLamports} from "../utils/utils";
+import {formatPct, fromLamports} from "../utils/utils";
+
+
+export const getDepositApy = async (connection: Connection, publicKey: string | PublicKey) => {
+    const pk = typeof publicKey === "string" ? publicKey : publicKey?.toBase58();
+    const programAccounts = await connection.getProgramAccounts(
+        LENDING_PROGRAM_ID
+    );
+    const lendingReserveAccount =
+        programAccounts
+            .filter(item =>
+                isLendingReserve(item.account))
+            .map((acc) =>
+                LendingReserveParser(acc.pubkey, acc.account)).filter(acc => acc?.pubkey.toBase58() === pk)
+
+    if (!lendingReserveAccount || lendingReserveAccount.length === 0) return 0;
+
+    const apy = calculateDepositAPY(lendingReserveAccount[0]?.info);
+
+    return formatPct.format(apy)
+}
 
 
 export const deposit = async (
