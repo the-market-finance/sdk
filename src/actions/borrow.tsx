@@ -4,9 +4,15 @@ import {
   PublicKey,
   TransactionInstruction,
 } from "@solana/web3.js";
-import { LendingReserve } from "../models/lending";
+import {
+  calculateBorrowAPY,
+  calculateDepositAPY,
+  isLendingReserve,
+  LendingReserve,
+  LendingReserveParser, reserveMarketCap
+} from "../models/lending";
 import { AccountLayout, MintInfo, MintLayout, Token } from "@solana/spl-token";
-import { LENDING_PROGRAM_ID, TOKEN_PROGRAM_ID } from "../constants";
+import {LENDING_PROGRAM_ID, programIds, TOKEN_PROGRAM_ID} from "../constants";
 import {
   createTempMemoryAccount,
   createUninitializedAccount,
@@ -15,7 +21,7 @@ import {
   ensureSplAccount,
   findOrCreateAccountByMint,
 } from "./account";
-import { cache, MintParser, ParsedAccount } from "../contexts/accounts";
+import {cache, MintParser, ParsedAccount, TokenAccountParser} from "../contexts/accounts";
 import {
   TokenAccount,
   LendingObligationLayout,
@@ -24,8 +30,94 @@ import {
   BorrowAmountType,
   LendingObligation,
 } from "../models";
-import { toLamports } from "../utils/utils";
+import {formatNumber, formatPct, fromLamports, toLamports} from "../utils/utils";
 import {sendTransaction} from "../contexts/connection";
+
+
+export const availableForBorrow = async (connection: Connection, wallet: any, publicKey: string | PublicKey) => {
+  const pk = typeof publicKey === "string" ? publicKey : publicKey?.toBase58();
+
+  const programAccounts = await connection.getProgramAccounts(
+      LENDING_PROGRAM_ID
+  );
+  const lendingReserveAccount =
+      programAccounts
+          .filter(item =>
+              isLendingReserve(item.account))
+          .map((acc) =>
+              LendingReserveParser(acc.pubkey, acc.account)).filter(acc => acc?.pubkey.toBase58() === pk)
+
+  if (!lendingReserveAccount || lendingReserveAccount.length === 0 || !wallet.publicKey) return 0;
+  const reserveLendingAccount = lendingReserveAccount[0]?.info;
+
+
+  const accountsbyOwner = await connection.getTokenAccountsByOwner(wallet?.publicKey, {
+    programId: programIds().token,
+  });
+  const prepareUserAccounts = accountsbyOwner.value.map( r => TokenAccountParser(r.pubkey, r.account));
+
+  const selectUserAccounts = prepareUserAccounts
+      .filter(
+          (a) => a && a.info.owner.toBase58() === wallet.publicKey?.toBase58()
+      )
+      .map((a) => a as TokenAccount);
+
+
+  const userAccounts = selectUserAccounts.filter(
+      (a) => a !== undefined
+  ) as TokenAccount[];
+
+  const accounts = userAccounts
+      .filter(
+          (acc) =>
+              reserveLendingAccount.collateralMint.equals(acc.info.mint)
+      )
+      .sort((a, b) => b.info.amount.sub(a.info.amount).toNumber());
+
+  const balanceLamports = accounts.reduce(
+      (res, item) => (res += item.info.amount.toNumber()),
+      0
+  );
+
+  const collateralRatioLamports =
+      reserveMarketCap(reserveLendingAccount) *
+      (balanceLamports / (reserveLendingAccount?.collateralMintSupply.toNumber() || 1));
+
+  // get mint
+  const MintId = reserveLendingAccount?.collateralMint.toBase58()
+
+  const mintInfo = await new Promise<any>((resolve, reject) => {
+    cache.query(connection, MintId, MintParser)
+        .then((acc) => resolve(acc.info as any))
+        .catch((err) => reject(err));
+  })
+
+  const availableForBorrow = fromLamports(collateralRatioLamports, mintInfo)
+
+  return formatNumber.format(availableForBorrow)
+}
+
+
+export const getBorrowApy = async (connection: Connection, publicKey: string | PublicKey) => {
+  const pk = typeof publicKey === "string" ? publicKey : publicKey?.toBase58();
+  const programAccounts = await connection.getProgramAccounts(
+      LENDING_PROGRAM_ID
+  );
+  const lendingReserveAccount =
+      programAccounts
+          .filter(item =>
+              isLendingReserve(item.account))
+          .map((acc) =>
+              LendingReserveParser(acc.pubkey, acc.account)).filter(acc => acc?.pubkey.toBase58() === pk)
+
+  if (!lendingReserveAccount || lendingReserveAccount.length === 0) return 0;
+
+  const apy = calculateBorrowAPY(lendingReserveAccount[0]?.info);
+
+  return formatPct.format(apy)
+}
+
+
 
 export const borrow = async (
   connection: Connection,

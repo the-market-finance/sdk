@@ -8,7 +8,7 @@ import {
 import {
     calculateDepositAPY,
     depositInstruction,
-    initReserveInstruction, isLendingReserve, LendingReserveParser,
+    initReserveInstruction, isLendingReserve, LendingReserve, LendingReserveParser,
 } from "../models/lending";
 import {AccountLayout, Token} from "@solana/spl-token";
 import {LENDING_PROGRAM_ID, programIds, TOKEN_PROGRAM_ID} from "../constants";
@@ -20,9 +20,7 @@ import {
 import {TokenAccount} from "../models";
 import {sendTransaction} from "../contexts/connection";
 
-import {cache, MintParser, TokenAccountParser} from "../contexts/accounts";
-
-import {formatPct, fromLamports} from "../utils/utils";
+import {formatPct} from "../utils/utils";
 
 
 export const getDepositApy = async (connection: Connection, publicKey: string | PublicKey) => {
@@ -44,69 +42,14 @@ export const getDepositApy = async (connection: Connection, publicKey: string | 
     return formatPct.format(apy)
 }
 
-
 export const deposit = async (
-    value: string,
+    from: TokenAccount,
+    amountLamports: number,
+    reserve: LendingReserve,
+    reserveAddress: PublicKey,
     connection: Connection,
-    wallet: any,
-    address: string | PublicKey,
+    wallet: any
 ) => {
-    // get reserve account
-    const id = typeof address === "string" ? address : address?.toBase58();
-
-    const accountInfo = await connection.getAccountInfo(new PublicKey(id)) as AccountInfo<Buffer>
-    const reserveAccount = LendingReserveParser(new PublicKey(id), accountInfo)
-
-    const reserve = reserveAccount?.info;
-
-    const reserveAddress = reserveAccount?.pubkey as PublicKey;
-    const accountsT = await connection.getTokenAccountsByOwner(wallet?.publicKey, {
-        programId: programIds().token,
-    });
-    const prepareUserAccounts = accountsT.value.map(r => TokenAccountParser(r.pubkey, r.account));
-
-    const selectUserAccounts =
-        prepareUserAccounts
-            .filter(
-                (a) => a && a.info.owner.toBase58() === wallet.publicKey?.toBase58()
-            )
-            .map((a) => a as TokenAccount);
-
-
-    const userAccounts = selectUserAccounts.filter(
-        (a) => a !== undefined
-    ) as TokenAccount[];
-
-    const accounts = userAccounts
-        .filter(
-            (acc) =>
-                reserve?.liquidityMint?.equals(acc.info.mint)
-        )
-        .sort((a, b) => b.info.amount.sub(a.info.amount).toNumber());
-
-    // get reserve account end
-
-    const balanceLamports = accounts.reduce(
-        (res, item) => (res += item.info.amount.toNumber()),
-        0
-    );
-
-
-    const MintId = reserve?.liquidityMint.toBase58()
-
-    console.log('MintId', MintId)
-
-    const mintInfo = await new Promise<any>((resolve, reject) => {
-        cache.query(connection, MintId, MintParser)
-            .then((acc) => resolve(acc.info as any))
-            .catch((err) => reject(err));
-    })
-
-    console.log('mintInfo', mintInfo)
-
-    const balance = fromLamports(balanceLamports, mintInfo);
-
-    const amountLamports = Math.ceil(balanceLamports * (parseFloat(value) / balance))
 
 
     const isInitalized = true; // TODO: finish reserve init
@@ -128,13 +71,11 @@ export const deposit = async (
     const fromAccount = ensureSplAccount(
         instructions,
         cleanupInstructions,
-        accounts[0],
+        from,
         wallet.publicKey,
         amountLamports + accountRentExempt,
         signers
     );
-
-    console.log('fromAccount', fromAccount.toBase58())
 
     // create approval for transfer transactions
     instructions.push(
@@ -212,13 +153,15 @@ export const deposit = async (
             true
         );
 
-        return {
+        return{
             message: "Funds deposited.",
             type: "success",
-            description: `Transaction - ${tx.slice(0, 7)}...${tx.slice(-7)}`,
+            description: `Transaction - ${tx.slice(0,4)}...${tx.slice(-4)}`,
+            full_description:`Transaction - ${tx}`
         };
     } catch {
         // TODO:
         throw new Error();
     }
 };
+
