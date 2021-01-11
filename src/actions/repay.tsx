@@ -28,9 +28,11 @@ export const repay = async (
   withdrawReserve: ParsedAccount<LendingReserve>,
 
   connection: Connection,
-  wallet: any
+  wallet: any,
+  notifyCallback?: (message: object) => void | any
 ) => {
-  console.log({
+  const sendMessageCallback = notifyCallback ? notifyCallback : (message: object) => console.log(message)
+  sendMessageCallback({
     message: "Repaing funds...",
     description: "Please review transactions to approve.",
     type: "warn",
@@ -110,13 +112,13 @@ export const repay = async (
     wallet,
     instructions.concat(cleanupInstructions),
     signers,
-    true
+    true,
+      sendMessageCallback
   );
 
-  return {
+  return sendMessageCallback({
     message: "Funds repaid.",
     type: "success",
-    description: `Transaction - ${tx.slice(0,7)}...${tx.slice(-7)}`,
-    full_description:`Transaction - ${tx}`,
-  };
+    description: `Transaction - ${tx.slice(0,4)}...${tx.slice(-4)}`,
+  });
 };

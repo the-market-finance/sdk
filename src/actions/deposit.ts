@@ -6,6 +6,7 @@ import {
 } from "@solana/web3.js";
 
 import {
+    calculateBorrowAPY,
     calculateDepositAPY,
     depositInstruction,
     initReserveInstruction, isLendingReserve, LendingReserve, LendingReserveParser,
@@ -19,11 +20,18 @@ import {
 } from "./account";
 import {TokenAccount} from "../models";
 import {sendTransaction} from "../contexts/connection";
+import {formatPct, wadToLamports} from "../utils/utils";
 
-import {formatPct} from "../utils/utils";
+export const depositApyVal = (reserve: LendingReserve):string => {
+    const totalBorrows = wadToLamports(reserve.borrowedLiquidityWad).toNumber();
+    const currentUtilization =
+        totalBorrows / (reserve.availableLiquidity.toNumber() + totalBorrows);
 
+    const borrowAPY = calculateBorrowAPY(reserve);
+    return formatPct.format(currentUtilization * borrowAPY);
+};
 
-export const getDepositApy = async (connection: Connection, publicKey: string | PublicKey) => {
+export const getDepositApy = async (connection: Connection, publicKey: string | PublicKey):Promise<string> => {
     const pk = typeof publicKey === "string" ? publicKey : publicKey?.toBase58();
     const programAccounts = await connection.getProgramAccounts(
         LENDING_PROGRAM_ID
@@ -35,7 +43,7 @@ export const getDepositApy = async (connection: Connection, publicKey: string | 
             .map((acc) =>
                 LendingReserveParser(acc.pubkey, acc.account)).filter(acc => acc?.pubkey.toBase58() === pk)
 
-    if (!lendingReserveAccount || lendingReserveAccount.length === 0) return 0;
+    if (!lendingReserveAccount || lendingReserveAccount.length === 0) return '--';
 
     const apy = calculateDepositAPY(lendingReserveAccount[0]?.info);
 
@@ -48,9 +56,16 @@ export const deposit = async (
     reserve: LendingReserve,
     reserveAddress: PublicKey,
     connection: Connection,
-    wallet: any
+    wallet: any,
+    notifyCallback?: (message:object) => void | any
 ) => {
+    const sendMessageCallback = notifyCallback ? notifyCallback : (message:object) => console.log(message)
 
+    sendMessageCallback({
+        message: "Depositing funds...",
+        description: "Please review transactions to approve.",
+        type: "warn",
+    });
 
     const isInitalized = true; // TODO: finish reserve init
 
@@ -150,15 +165,15 @@ export const deposit = async (
             wallet,
             instructions.concat(cleanupInstructions),
             signers,
-            true
+            true,
+            sendMessageCallback
         );
 
-        return{
+        return sendMessageCallback({
             message: "Funds deposited.",
             type: "success",
             description: `Transaction - ${tx.slice(0,4)}...${tx.slice(-4)}`,
-            full_description:`Transaction - ${tx}`
-        };
+        });
     } catch {
         // TODO:
         throw new Error();

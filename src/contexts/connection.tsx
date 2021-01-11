@@ -65,8 +65,10 @@ export const sendTransaction = async (
   wallet: any,
   instructions: TransactionInstruction[],
   signers: Account[],
-  awaitConfirmation = true
+  awaitConfirmation = true,
+  notifyCallback?: (message:object) => void | any
 ) => {
+  const sendMessageCallback = notifyCallback ? notifyCallback : (message:object) => console.log(message)
   let transaction = new Transaction();
   instructions.forEach((instruction) => transaction.add(instruction));
   transaction.recentBlockhash = (
@@ -99,7 +101,7 @@ export const sendTransaction = async (
 
     if (status?.err) {
       const errors = await getErrorForTransaction(connection, txid);
-      console.log({
+      sendMessageCallback({
         message: "Transaction failed...",
         address:txid,
         description: errors,
