@@ -141,6 +141,11 @@ export const borrow = async (
         description: "Please review transactions to approve.",
         type: "warn",
     });
+
+    const accountsByOwner = await connection.getTokenAccountsByOwner(wallet?.publicKey, {
+        programId: programIds().token,
+    });
+
     let signers: Account[] = [];
     let instructions: TransactionInstruction[] = [];
     let cleanupInstructions: TransactionInstruction[] = [];
@@ -185,7 +190,9 @@ export const borrow = async (
         cleanupInstructions,
         accountRentExempt,
         borrowReserve.info.liquidityMint,
-        signers
+        signers,
+        undefined,
+        accountsByOwner.value ? accountsByOwner.value.map( a => TokenAccountParser(a.pubkey,a.account)) : undefined
     );
 
     if (instructions.length > 0) {

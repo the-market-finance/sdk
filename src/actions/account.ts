@@ -1,4 +1,4 @@
-import { AccountLayout, MintLayout, Token } from "@solana/spl-token";
+import {AccountLayout, MintLayout, Token} from "@solana/spl-token";
 import {
     Account,
     PublicKey,
@@ -10,8 +10,8 @@ import {
     TOKEN_PROGRAM_ID,
     WRAPPED_SOL_MINT,
 } from "../constants";
-import { LendingObligationLayout, TokenAccount } from "../models";
-import { cache, TokenAccountParser } from "../contexts/accounts";
+import {LendingObligationLayout, TokenAccount} from "../models";
+import {cache, TokenAccountParser} from "../contexts/accounts";
 
 export function ensureSplAccount(
     instructions: TransactionInstruction[],
@@ -153,6 +153,7 @@ export function createTokenAccount(
     owner: PublicKey,
     signers: Account[]
 ) {
+    console.log('createTokenAccount',createTokenAccount)
     const account = createUninitializedAccount(
         instructions,
         payer,
@@ -176,7 +177,8 @@ export function findOrCreateAccountByMint(
     accountRentExempt: number,
     mint: PublicKey, // use to identify same type
     signers: Account[],
-    excluded?: Set<string>
+    excluded?: Set<string>,
+    accountsByOwnerParsed?: TokenAccount[]
 ): PublicKey {
     const accountToFind = mint.toBase58();
     const account = cache
@@ -195,15 +197,24 @@ export function findOrCreateAccountByMint(
     if (account && !isWrappedSol) {
         toAccount = account.pubkey;
     } else {
-        // creating depositor pool account
-        toAccount = createTokenAccount(
-            instructions,
-            payer,
-            accountRentExempt,
-            mint,
-            owner,
-            signers
-        );
+        //find accound from owners parsed
+
+            const acc = accountsByOwnerParsed && accountsByOwnerParsed.find(
+                (acc) =>
+                    acc !== undefined &&
+                    acc.info.mint.toBase58() === accountToFind &&
+                    acc.info.owner.toBase58() === owner.toBase58() &&
+                    (excluded === undefined || !excluded.has(acc.pubkey.toBase58()))
+            )
+            console.log('acc', acc);
+            toAccount = acc?.pubkey || createTokenAccount(
+                instructions,
+                payer,
+                accountRentExempt,
+                mint,
+                owner,
+                signers
+            );
 
         if (isWrappedSol) {
             cleanupInstructions.push(

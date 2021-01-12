@@ -1,124 +1,126 @@
 import {
-  Account,
-  Connection,
-  PublicKey,
-  TransactionInstruction,
+    Account,
+    Connection,
+    PublicKey,
+    TransactionInstruction,
 } from "@solana/web3.js";
 
-import { LendingReserve } from "../models/lending";
-import { repayInstruction } from "../models/lending/repay";
-import { AccountLayout, Token } from "@solana/spl-token";
-import { LENDING_PROGRAM_ID, TOKEN_PROGRAM_ID } from "../constants";
-import { findOrCreateAccountByMint } from "./account";
-import { LendingObligation, TokenAccount } from "../models";
-import { ParsedAccount } from "../contexts/accounts";
+import {LendingReserve} from "../models/lending";
+import {repayInstruction} from "../models/lending/repay";
+import {AccountLayout, Token} from "@solana/spl-token";
+import {LENDING_PROGRAM_ID, programIds, TOKEN_PROGRAM_ID} from "../constants";
+import {findOrCreateAccountByMint} from "./account";
+import {LendingObligation, TokenAccount} from "../models";
+import {ParsedAccount, TokenAccountParser} from "../contexts/accounts";
 import {sendTransaction} from "../contexts/connection";
 
 export const repay = async (
-  from: TokenAccount, // CollateralAccount
-  amountLamports: number, // in collateral token (lamports)
+    from: TokenAccount, // CollateralAccount
+    amountLamports: number, // in collateral token (lamports)
 
-  // which loan to repay
-  obligation: ParsedAccount<LendingObligation>,
-
-  obligationToken: TokenAccount,
-
-  repayReserve: ParsedAccount<LendingReserve>,
-
-  withdrawReserve: ParsedAccount<LendingReserve>,
-
-  connection: Connection,
-  wallet: any,
-  notifyCallback?: (message: object) => void | any
+    // which loan to repay
+    obligation: ParsedAccount<LendingObligation>,
+    obligationToken: TokenAccount,
+    repayReserve: ParsedAccount<LendingReserve>,
+    withdrawReserve: ParsedAccount<LendingReserve>,
+    connection: Connection,
+    wallet: any,
+    notifyCallback?: (message: object) => void | any
 ) => {
-  const sendMessageCallback = notifyCallback ? notifyCallback : (message: object) => console.log(message)
-  sendMessageCallback({
-    message: "Repaing funds...",
-    description: "Please review transactions to approve.",
-    type: "warn",
-  });
+    const sendMessageCallback = notifyCallback ? notifyCallback : (message: object) => console.log(message)
+    sendMessageCallback({
+        message: "Repaing funds...",
+        description: "Please review transactions to approve.",
+        type: "warn",
+    });
 
-  // user from account
-  const signers: Account[] = [];
-  const instructions: TransactionInstruction[] = [];
-  const cleanupInstructions: TransactionInstruction[] = [];
+    const accountsByOwner = await connection.getTokenAccountsByOwner(wallet?.publicKey, {
+        programId: programIds().token,
+    });
 
-  const accountRentExempt = await connection.getMinimumBalanceForRentExemption(
-    AccountLayout.span
-  );
+    // user from account
+    const signers: Account[] = [];
+    const instructions: TransactionInstruction[] = [];
+    const cleanupInstructions: TransactionInstruction[] = [];
 
-  const [authority] = await PublicKey.findProgramAddress(
-    [repayReserve.info.lendingMarket.toBuffer()],
-    LENDING_PROGRAM_ID
-  );
+    const accountRentExempt = await connection.getMinimumBalanceForRentExemption(
+        AccountLayout.span
+    );
 
-  const fromAccount = from.pubkey;
+    const [authority] = await PublicKey.findProgramAddress(
+        [repayReserve.info.lendingMarket.toBuffer()],
+        LENDING_PROGRAM_ID
+    );
 
-  // create approval for transfer transactions
-  instructions.push(
-    Token.createApproveInstruction(
-      TOKEN_PROGRAM_ID,
-      fromAccount,
-      authority,
-      wallet.publicKey,
-      [],
-      amountLamports
-    )
-  );
+    const fromAccount = from.pubkey;
 
-  // get destination account
-  const toAccount = await findOrCreateAccountByMint(
-    wallet.publicKey,
-    wallet.publicKey,
-    instructions,
-    cleanupInstructions,
-    accountRentExempt,
-    withdrawReserve.info.collateralMint,
-    signers
-  );
+    // create approval for transfer transactions
+    instructions.push(
+        Token.createApproveInstruction(
+            TOKEN_PROGRAM_ID,
+            fromAccount,
+            authority,
+            wallet.publicKey,
+            [],
+            amountLamports
+        )
+    );
 
-  // create approval for transfer transactions
-  instructions.push(
-    Token.createApproveInstruction(
-      TOKEN_PROGRAM_ID,
-      obligationToken.pubkey,
-      authority,
-      wallet.publicKey,
-      [],
-      obligationToken.info.amount.toNumber()
-    )
-  );
+    // get destination account
+    const toAccount = await findOrCreateAccountByMint(
+        wallet.publicKey,
+        wallet.publicKey,
+        instructions,
+        cleanupInstructions,
+        accountRentExempt,
+        withdrawReserve.info.collateralMint,
+        signers,
+        undefined,
+        accountsByOwner.value ? accountsByOwner.value.map(a => TokenAccountParser(a.pubkey, a.account)) : undefined
+    );
 
-  // TODO: add obligation
+    // create approval for transfer transactions
+    instructions.push(
+        Token.createApproveInstruction(
+            TOKEN_PROGRAM_ID,
+            obligationToken.pubkey,
+            authority,
+            wallet.publicKey,
+            [],
+            obligationToken.info.amount.toNumber()
+        )
+    );
 
-  instructions.push(
-    repayInstruction(
-      amountLamports,
-      fromAccount,
-      toAccount,
-      repayReserve.pubkey,
-      repayReserve.info.liquiditySupply,
-      withdrawReserve.pubkey,
-      withdrawReserve.info.collateralSupply,
-      obligation.pubkey,
-      obligation.info.tokenMint,
-      obligationToken.pubkey,
-      authority
-    )
-  );
+    // TODO: add obligation
 
-  let tx = await sendTransaction(
-    connection,
-    wallet,
-    instructions.concat(cleanupInstructions),
-    signers,
-    true,
-      sendMessageCallback
-  );
+    instructions.push(
+        repayInstruction(
+            amountLamports,
+            fromAccount,
+            toAccount,
+            repayReserve.pubkey,
+            repayReserve.info.liquiditySupply,
+            withdrawReserve.pubkey,
+            withdrawReserve.info.collateralSupply,
+            obligation.pubkey,
+            obligation.info.tokenMint,
+            obligationToken.pubkey,
+            authority
+        )
+    );
 
-  return sendMessageCallback({
-    message: "Funds repaid.",
-    type: "success",
-    description: `Transaction - ${tx.slice(0,4)}...${tx.slice(-4)}`,
-  });
+    let tx = await sendTransaction(
+        connection,
+        wallet,
+        instructions.concat(cleanupInstructions),
+        signers,
+        true,
+        sendMessageCallback
+    );
+
+    sendMessageCallback({
+        message: "Funds repaid.",
+        type: "success",
+        description: `Transaction - ${tx.slice(0, 4)}...${tx.slice(-4)}`,
+    });
 };

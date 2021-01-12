@@ -6,10 +6,11 @@ import {
 } from "@solana/web3.js";
 import {LendingReserve, withdrawInstruction} from "./../models/lending";
 import {AccountLayout, Token} from "@solana/spl-token";
-import {LENDING_PROGRAM_ID, TOKEN_PROGRAM_ID} from "../constants/ids";
+import {LENDING_PROGRAM_ID, programIds, TOKEN_PROGRAM_ID} from "../constants/ids";
 import {findOrCreateAccountByMint} from "./account";
 import {TokenAccount} from "../models";
 import {sendTransaction} from "../contexts/connection";
+import {TokenAccountParser} from "../contexts/accounts";
 
 export const withdraw = async (
     from: TokenAccount, // CollateralAccount
@@ -25,6 +26,10 @@ export const withdraw = async (
         message: "Withdrawing funds...",
         description: "Please review transactions to approve.",
         type: "warn",
+    });
+
+    const accountsByOwner = await connection.getTokenAccountsByOwner(wallet?.publicKey, {
+        programId: programIds().token,
     });
 
     // user from account
@@ -63,7 +68,9 @@ export const withdraw = async (
         cleanupInstructions,
         accountRentExempt,
         reserve.liquidityMint,
-        signers
+        signers,
+        undefined,
+        accountsByOwner.value ? accountsByOwner.value.map( a => TokenAccountParser(a.pubkey,a.account)) : undefined
     );
 
     instructions.push(

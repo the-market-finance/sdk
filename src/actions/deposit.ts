@@ -21,6 +21,7 @@ import {
 import {TokenAccount} from "../models";
 import {sendTransaction} from "../contexts/connection";
 import {formatPct, wadToLamports} from "../utils/utils";
+import {TokenAccountParser} from "../contexts/accounts";
 
 export const depositApyVal = (reserve: LendingReserve):string => {
     const totalBorrows = wadToLamports(reserve.borrowedLiquidityWad).toNumber();
@@ -60,6 +61,11 @@ export const deposit = async (
     notifyCallback?: (message:object) => void | any
 ) => {
     const sendMessageCallback = notifyCallback ? notifyCallback : (message:object) => console.log(message)
+
+    const accountsByOwner = await connection.getTokenAccountsByOwner(wallet?.publicKey, {
+        programId: programIds().token,
+    });
+
 
     sendMessageCallback({
         message: "Depositing funds...",
@@ -114,7 +120,9 @@ export const deposit = async (
             cleanupInstructions,
             accountRentExempt,
             reserve.collateralMint,
-            signers
+            signers,
+            undefined,
+            accountsByOwner.value ? accountsByOwner.value.map( a => TokenAccountParser(a.pubkey,a.account)) : undefined
         );
     } else {
         toAccount = createUninitializedAccount(
@@ -158,6 +166,8 @@ export const deposit = async (
             )
         );
     }
+    console.log('signers',signers)
+    console.log('instructions.concat(cleanupInstructions)',instructions.concat(cleanupInstructions))
 
     try {
         let tx = await sendTransaction(
