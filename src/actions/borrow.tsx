@@ -126,23 +126,67 @@ export const getBorrowApy = async (connection: Connection, publicKey: string | P
 export const borrow = async (
     connection: Connection,
     wallet: any,
-    from: TokenAccount,
     amount: number,
-    amountType: BorrowAmountType,
+    collateralAddress: PublicKey | string,
     borrowReserve: ParsedAccount<LendingReserve>,
-    depositReserve: ParsedAccount<LendingReserve>,
+    // depositReserve: ParsedAccount<LendingReserve>,
     existingObligation?: ParsedAccount<LendingObligation>,
     obligationAccount?: PublicKey,
     notifyCallback?: (message: object) => void | any
 ) => {
     try {
-
         const sendMessageCallback = notifyCallback ? notifyCallback : (message: object) => console.log(message)
         sendMessageCallback({
             message: "Borrowing funds...",
             description: "Please review transactions to approve.",
             type: "warn",
         });
+
+        // treatment collateralAddress
+        const collateralId = typeof collateralAddress === "string" ? collateralAddress : collateralAddress?.toBase58();
+        // fetch from
+        const programAccounts = await connection.getProgramAccounts(
+            LENDING_PROGRAM_ID
+        );
+
+        const lendingReserveAccount =
+            programAccounts
+                .filter(item =>
+                    isLendingReserve(item.account))
+                .map((acc) =>
+                    LendingReserveParser(acc.pubkey, acc.account)).filter(acc => acc?.pubkey.toBase58() === collateralId)
+
+        if (!lendingReserveAccount || lendingReserveAccount.length === 0 || !wallet.publicKey) throw 'depositReserve (collateral Reserve account not found)'
+        const reserveLendingAccount = lendingReserveAccount[0]?.info;
+        //set depositReserve(collateral reserve)
+        const depositReserve:ParsedAccount<LendingReserve> = lendingReserveAccount[0] as ParsedAccount<LendingReserve>
+
+        const accountsbyOwner = await connection.getTokenAccountsByOwner(wallet?.publicKey, {
+            programId: programIds().token,
+        });
+        const prepareUserAccounts = accountsbyOwner.value.map(r => TokenAccountParser(r.pubkey, r.account));
+
+        const selectUserAccounts = prepareUserAccounts
+            .filter(
+                (a) => a && a.info.owner.toBase58() === wallet.publicKey?.toBase58()
+            )
+            .map((a) => a as TokenAccount);
+
+        const userAccounts = selectUserAccounts.filter(
+            (a) => a !== undefined
+        ) as TokenAccount[];
+
+        const fromAccounts = userAccounts
+            .filter(
+                (acc) =>
+                    reserveLendingAccount.collateralMint.equals(acc.info.mint)
+            )
+            .sort((a, b) => b.info.amount.sub(a.info.amount).toNumber());
+
+
+        if (!fromAccounts.length){throw Error('from account not found.')}
+
+        const from = fromAccounts[0];
 
         const accountsByOwner = await connection.getTokenAccountsByOwner(wallet?.publicKey, {
             programId: programIds().token,
@@ -151,6 +195,9 @@ export const borrow = async (
         let signers: Account[] = [];
         let instructions: TransactionInstruction[] = [];
         let cleanupInstructions: TransactionInstruction[] = [];
+
+        // set default amount type
+        const amountType: BorrowAmountType = 0;
 
         const accountRentExempt = await connection.getMinimumBalanceForRentExemption(
             AccountLayout.span
