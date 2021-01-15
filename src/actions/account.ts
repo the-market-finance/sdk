@@ -206,7 +206,7 @@ export function findOrCreateAccountByMint(
                     acc.info.owner.toBase58() === owner.toBase58() &&
                     (excluded === undefined || !excluded.has(acc.pubkey.toBase58()))
             )
-            console.log('acc', acc);
+
             toAccount = acc?.pubkey || createTokenAccount(
                 instructions,
                 payer,

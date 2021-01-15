@@ -85,36 +85,41 @@ export const cache = {
       pubKey: string | PublicKey,
       parser?: AccountParser
   ) => {
-    let id: PublicKey;
-    if (typeof pubKey === "string") {
-      id = new PublicKey(pubKey);
-    } else {
-      id = pubKey;
-    }
-
-    const address = id.toBase58();
-
-    let account = genericCache.get(address);
-    if (account) {
-      return account;
-    }
-
-    let query = pendingCalls.get(address);
-    if (query) {
-      return query;
-    }
-
-    // TODO: refactor to use multiple accounts query with flush like behavior
-    query = connection.getAccountInfo(id).then((data) => {
-      if (!data) {
-        throw new Error("Account not found");
+    try{
+      let id: PublicKey;
+      if (typeof pubKey === "string") {
+        id = new PublicKey(pubKey);
+      } else {
+        id = pubKey;
       }
 
-      return cache.add(id, data, parser);
-    }) as Promise<TokenAccount>;
-    pendingCalls.set(address, query as any);
+      const address = id.toBase58();
 
-    return query;
+      let account = genericCache.get(address);
+      if (account) {
+        return account;
+      }
+
+      let query = pendingCalls.get(address);
+      if (query) {
+        return query;
+      }
+
+      // TODO: refactor to use multiple accounts query with flush like behavior
+      query = connection.getAccountInfo(id).then((data) => {
+        if (!data) {
+          throw new Error("Account not found");
+        }
+
+        return cache.add(id, data, parser);
+      }) as Promise<TokenAccount>;
+      pendingCalls.set(address, query as any);
+
+      return query;
+    }catch (e){
+      console.log('queryerror',e)
+    }
+
   },
   add: (
       id: PublicKey | string,
