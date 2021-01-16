@@ -6,8 +6,8 @@ import {
 } from "@solana/web3.js";
 import {
     calculateBorrowAPY,
-    calculateDepositAPY,
-    isLendingReserve, LendingMarketParser,
+    calculateDepositAPY, isLendingObligation,
+    isLendingReserve, LendingMarketParser, LendingObligationParser,
     LendingReserve,
     LendingReserveParser, reserveMarketCap
 } from "../models/lending";
@@ -129,274 +129,306 @@ export const borrow = async (
     amount: number,
     collateralAddress: PublicKey | string,
     borrowReserve: ParsedAccount<LendingReserve>,
-    // depositReserve: ParsedAccount<LendingReserve>,
-    existingObligation?: ParsedAccount<LendingObligation>,
-    obligationAccount?: PublicKey,
     notifyCallback?: (message: object) => void | any
 ) => {
-    try {
-        const sendMessageCallback = notifyCallback ? notifyCallback : (message: object) => console.log(message)
-        sendMessageCallback({
-            message: "Borrowing funds...",
-            description: "Please review transactions to approve.",
-            type: "warn",
-        });
 
-        // treatment collateralAddress
-        const collateralId = typeof collateralAddress === "string" ? collateralAddress : collateralAddress?.toBase58();
-        // fetch from
-        const programAccounts = await connection.getProgramAccounts(
-            LENDING_PROGRAM_ID
-        );
+    const sendMessageCallback = notifyCallback ? notifyCallback : (message: object) => console.log(message)
+    sendMessageCallback({
+        message: "Borrowing funds...",
+        description: "Please review transactions to approve.",
+        type: "warn",
+    });
 
-        const lendingReserveAccount =
-            programAccounts
-                .filter(item =>
-                    isLendingReserve(item.account))
-                .map((acc) =>
-                    LendingReserveParser(acc.pubkey, acc.account)).filter(acc => acc?.pubkey.toBase58() === collateralId)
+    // treatment collateralAddress
+    const collateralId = typeof collateralAddress === "string" ? collateralAddress : collateralAddress?.toBase58();
+    // fetch from
+    const programAccounts = await connection.getProgramAccounts(
+        LENDING_PROGRAM_ID
+    );
 
-        if (!lendingReserveAccount || lendingReserveAccount.length === 0 || !wallet.publicKey) throw 'depositReserve (collateral Reserve account not found)'
-        const reserveLendingAccount = lendingReserveAccount[0]?.info;
-        //set depositReserve(collateral reserve)
-        const depositReserve:ParsedAccount<LendingReserve> = lendingReserveAccount[0] as ParsedAccount<LendingReserve>
+    const lendingReserveAccount =
+        programAccounts
+            .filter(item =>
+                isLendingReserve(item.account))
+            .map((acc) =>
+                LendingReserveParser(acc.pubkey, acc.account)).filter(acc => acc?.pubkey.toBase58() === collateralId)
 
-        const accountsbyOwner = await connection.getTokenAccountsByOwner(wallet?.publicKey, {
-            programId: programIds().token,
-        });
-        const prepareUserAccounts = accountsbyOwner.value.map(r => TokenAccountParser(r.pubkey, r.account));
+    if (!lendingReserveAccount || lendingReserveAccount.length === 0 || !wallet.publicKey) throw 'depositReserve (collateral Reserve account not found)'
+    const reserveLendingAccount = lendingReserveAccount[0]?.info;
+    //set depositReserve(collateral reserve)
+    const depositReserve: ParsedAccount<LendingReserve> = lendingReserveAccount[0] as ParsedAccount<LendingReserve>
 
-        const selectUserAccounts = prepareUserAccounts
-            .filter(
-                (a) => a && a.info.owner.toBase58() === wallet.publicKey?.toBase58()
-            )
-            .map((a) => a as TokenAccount);
+    const accountsbyOwner = await connection.getTokenAccountsByOwner(wallet?.publicKey, {
+        programId: programIds().token,
+    });
+    const prepareUserAccounts = accountsbyOwner.value.map(r => TokenAccountParser(r.pubkey, r.account));
 
-        const userAccounts = selectUserAccounts.filter(
-            (a) => a !== undefined
-        ) as TokenAccount[];
-
-        const fromAccounts = userAccounts
-            .filter(
-                (acc) =>
-                    reserveLendingAccount.collateralMint.equals(acc.info.mint)
-            )
-            .sort((a, b) => b.info.amount.sub(a.info.amount).toNumber());
-
-
-        if (!fromAccounts.length){throw Error('from account not found.')}
-
-        const from = fromAccounts[0];
-
-        const accountsByOwner = await connection.getTokenAccountsByOwner(wallet?.publicKey, {
-            programId: programIds().token,
-        });
-
-        let signers: Account[] = [];
-        let instructions: TransactionInstruction[] = [];
-        let cleanupInstructions: TransactionInstruction[] = [];
-
-        // set default amount type
-        const amountType: BorrowAmountType = 0;
-
-        const accountRentExempt = await connection.getMinimumBalanceForRentExemption(
-            AccountLayout.span
-        );
-
-        const obligation = existingObligation
-            ? existingObligation.pubkey
-            : createUninitializedObligation(
-                instructions,
-                wallet.publicKey,
-                await connection.getMinimumBalanceForRentExemption(
-                    LendingObligationLayout.span
-                ),
-                signers
-            );
-
-        const obligationMint = existingObligation
-            ? existingObligation.info.tokenMint
-            : createUninitializedMint(
-                instructions,
-                wallet.publicKey,
-                await connection.getMinimumBalanceForRentExemption(MintLayout.span),
-                signers
-            );
-
-        const obligationTokenOutput = obligationAccount
-            ? obligationAccount
-            : createUninitializedAccount(
-                instructions,
-                wallet.publicKey,
-                accountRentExempt,
-                signers
-            );
-
-        let toAccount = await findOrCreateAccountByMint(
-            wallet.publicKey,
-            wallet.publicKey,
-            instructions,
-            cleanupInstructions,
-            accountRentExempt,
-            borrowReserve.info.liquidityMint,
-            signers,
-            undefined,
-            accountsByOwner.value ? accountsByOwner.value.map(a => TokenAccountParser(a.pubkey, a.account)) : undefined
-        );
-
-        if (instructions.length > 0) {
-            // create all accounts in one transaction
-            let tx = await sendTransaction(connection, wallet, instructions, [
-                ...signers,
-            ], true, sendMessageCallback);
-
-            sendMessageCallback({
-                message: "Obligation accounts created",
-                description: `Transaction ${tx.slice(0, 4)}...${tx.slice(-4)}`,
-                type: "success",
-            });
-        }
-
-        sendMessageCallback({
-            message: "Borrowing funds...",
-            description: "Please review transactions to approve.",
-            type: "warn",
-        });
-
-        signers = [];
-        instructions = [];
-        cleanupInstructions = [];
-
-        const [authority] = await PublicKey.findProgramAddress(
-            [depositReserve.info.lendingMarket.toBuffer()],
-            LENDING_PROGRAM_ID
-        );
-
-        let amountLamports: number = 0;
-        let fromLamports: number = 0;
-        if (amountType === BorrowAmountType.LiquidityBorrowAmount) {
-            // approve max transfer
-            // TODO: improve contrain by using dex market data
-            const approvedAmount = from.info.amount.toNumber();
-
-            fromLamports = approvedAmount - accountRentExempt;
-
-            const mint = (await cache.query(
-                connection,
-                borrowReserve.info.liquidityMint,
-                MintParser
-            )) as ParsedAccount<MintInfo>;
-
-            amountLamports = toLamports(amount, mint?.info);
-        } else if (amountType === BorrowAmountType.CollateralDepositAmount) {
-            const mint = (await cache.query(
-                connection,
-                depositReserve.info.collateralMint,
-                MintParser
-            )) as ParsedAccount<MintInfo>;
-            amountLamports = toLamports(amount, mint?.info);
-            fromLamports = amountLamports;
-        }
-
-        const fromAccount = ensureSplAccount(
-            instructions,
-            cleanupInstructions,
-            from,
-            wallet.publicKey,
-            fromLamports + accountRentExempt,
-            signers
-        );
-
-        // create approval for transfer transactions
-        // approve(
-        //     instructions,
-        //     cleanupInstructions,
-        //     fromAccount,
-        //     authority,
-        //     wallet.publicKey,
-        //     fromLamports
-        // );
-
-        // create approval for transfer transactions
-        instructions.push(
-            Token.createApproveInstruction(
-                TOKEN_PROGRAM_ID,
-                fromAccount,
-                authority,
-                wallet.publicKey,
-                [],
-                fromLamports
-            )
-        );
-
-        const dexMarketAddress = borrowReserve.info.dexMarketOption
-            ? borrowReserve.info.dexMarket
-            : depositReserve.info.dexMarket;
-
-        const dexMarket = await cache.query(connection, dexMarketAddress, DexMarketParser);
-
-        if (!dexMarket) {
-            throw new Error(`Dex market doesn't exist.`);
-        }
-
-        const market = await cache.query(connection, depositReserve.info.lendingMarket, LendingMarketParser) as ParsedAccount<LendingMarket>;
-
-        const dexOrderBookSide = market.info.quoteMint.equals(
-            depositReserve.info.liquidityMint
+    const selectUserAccounts = prepareUserAccounts
+        .filter(
+            (a) => a && a.info.owner.toBase58() === wallet.publicKey?.toBase58()
         )
-            ? dexMarket?.info.bids
-            : dexMarket?.info.asks;
+        .map((a) => a as TokenAccount);
 
-        const memory = createTempMemoryAccount(
+    const userAccounts = selectUserAccounts.filter(
+        (a) => a !== undefined
+    ) as TokenAccount[];
+
+    const fromAccounts = userAccounts
+        .filter(
+            (acc) =>
+                reserveLendingAccount.collateralMint.equals(acc.info.mint)
+        )
+        .sort((a, b) => b.info.amount.sub(a.info.amount).toNumber());
+
+
+    if (!fromAccounts.length) {
+        throw Error('from account not found.')
+    }
+
+    const from = fromAccounts[0];
+
+    const accountsByOwner = await connection.getTokenAccountsByOwner(wallet?.publicKey, {
+        programId: programIds().token,
+    });
+
+    let signers: Account[] = [];
+    let instructions: TransactionInstruction[] = [];
+    let cleanupInstructions: TransactionInstruction[] = [];
+
+    // set default amount type
+    const amountType: BorrowAmountType = 0;
+
+
+    //fetch obligations
+    const obligations =
+        programAccounts
+            .filter(item =>
+                isLendingObligation(item.account))
+            .map((acc) =>
+                LendingObligationParser(acc.pubkey, acc.account))
+
+    //
+    const accountsByMint = userAccounts.reduce((res, acc) => {
+        const id = acc.info.mint.toBase58();
+        res.set(id, [...(res.get(id) || []), acc]);
+        return res;
+    }, new Map<string, TokenAccount[]>());
+
+    const userObligations = obligations
+        .filter(
+            (acc) => accountsByMint.get(acc.info.tokenMint.toBase58()) !== undefined
+        )
+        .map((ob) => {
+            return {
+                obligation: ob,
+                // @ts-ignore
+                userAccounts: [...accountsByMint.get(ob.info.tokenMint.toBase58())],
+            };
+        });
+
+    const userObligationsByReserve = userObligations.filter(
+        (item) =>
+            item.obligation.info.borrowReserve.toBase58() === borrowReserve.pubkey.toBase58() &&
+            item.obligation.info.collateralReserve.toBase58() === collateralId
+    );
+
+    //fetch obligations end
+
+    const accountRentExempt = await connection.getMinimumBalanceForRentExemption(
+        AccountLayout.span
+    );
+
+    const obligation = userObligationsByReserve.length > 0
+        ? userObligationsByReserve[0].obligation.pubkey
+        : createUninitializedObligation(
             instructions,
             wallet.publicKey,
+            await connection.getMinimumBalanceForRentExemption(
+                LendingObligationLayout.span
+            ),
             signers
         );
-        // deposit
-        instructions.push(
-            borrowInstruction(
-                amountLamports,
-                amountType,
-                fromAccount,
-                toAccount,
-                depositReserve.pubkey,
-                depositReserve.info.collateralSupply,
-                borrowReserve.pubkey,
-                borrowReserve.info.liquiditySupply,
 
-                obligation,
-                obligationMint,
-                obligationTokenOutput,
-                wallet.publicKey,
-
-                authority,
-
-                dexMarketAddress,
-                dexOrderBookSide,
-
-                memory
-            )
+    const obligationMint = userObligationsByReserve.length > 0
+        ? userObligationsByReserve[0].obligation.info.tokenMint
+        : createUninitializedMint(
+            instructions,
+            wallet.publicKey,
+            await connection.getMinimumBalanceForRentExemption(MintLayout.span),
+            signers
         );
-        try {
-            let tx = await sendTransaction(
-                connection,
-                wallet,
-                instructions.concat(cleanupInstructions),
-                signers,
-                true,
-                sendMessageCallback
-            );
 
-            sendMessageCallback({
-                message: "Funds borrowed.",
-                type: "success",
-                description: `Transaction - ${tx.slice(0, 4)}...${tx.slice(-4)}`,
-            });
-        } catch {
-            // TODO:
-            throw new Error();
-        }
+    const obligationTokenOutput = userObligationsByReserve.length > 0
+        ? userObligationsByReserve[0].userAccounts[0].pubkey
+        : createUninitializedAccount(
+            instructions,
+            wallet.publicKey,
+            accountRentExempt,
+            signers
+        );
+
+    let toAccount = await findOrCreateAccountByMint(
+        wallet.publicKey,
+        wallet.publicKey,
+        instructions,
+        cleanupInstructions,
+        accountRentExempt,
+        borrowReserve.info.liquidityMint,
+        signers,
+        undefined,
+        accountsByOwner.value ? accountsByOwner.value.map(a => TokenAccountParser(a.pubkey, a.account)) : undefined
+    );
+
+    if (instructions.length > 0) {
+        // create all accounts in one transaction
+        let tx = await sendTransaction(connection, wallet, instructions, [
+            ...signers,
+        ], true, sendMessageCallback);
+
+        sendMessageCallback({
+            message: "Obligation accounts created",
+            description: `Transaction ${tx.slice(0, 4)}...${tx.slice(-4)}`,
+            type: "success",
+        });
+    }
+
+    sendMessageCallback({
+        message: "Borrowing funds...",
+        description: "Please review transactions to approve.",
+        type: "warn",
+    });
+
+    signers = [];
+    instructions = [];
+    cleanupInstructions = [];
+
+    const [authority] = await PublicKey.findProgramAddress(
+        [depositReserve.info.lendingMarket.toBuffer()],
+        LENDING_PROGRAM_ID
+    );
+
+    let amountLamports: number = 0;
+    let fromLamports: number = 0;
+    if (amountType === BorrowAmountType.LiquidityBorrowAmount) {
+        // approve max transfer
+        // TODO: improve contrain by using dex market data
+        const approvedAmount = from.info.amount.toNumber();
+
+        fromLamports = approvedAmount - accountRentExempt;
+
+        const mint = (await cache.query(
+            connection,
+            borrowReserve.info.liquidityMint,
+            MintParser
+        )) as ParsedAccount<MintInfo>;
+
+        amountLamports = toLamports(amount, mint?.info);
+    } else if (amountType === BorrowAmountType.CollateralDepositAmount) {
+        const mint = (await cache.query(
+            connection,
+            depositReserve.info.collateralMint,
+            MintParser
+        )) as ParsedAccount<MintInfo>;
+        amountLamports = toLamports(amount, mint?.info);
+        fromLamports = amountLamports;
+    }
+
+    const fromAccount = ensureSplAccount(
+        instructions,
+        cleanupInstructions,
+        from,
+        wallet.publicKey,
+        fromLamports + accountRentExempt,
+        signers
+    );
+
+    // create approval for transfer transactions
+    approve(
+        instructions,
+        cleanupInstructions,
+        fromAccount,
+        authority,
+        wallet.publicKey,
+        fromLamports
+    );
+
+    // create approval for transfer transactions
+    instructions.push(
+        Token.createApproveInstruction(
+            TOKEN_PROGRAM_ID,
+            fromAccount,
+            authority,
+            wallet.publicKey,
+            [],
+            fromLamports
+        )
+    );
+
+    const dexMarketAddress = borrowReserve.info.dexMarketOption
+        ? borrowReserve.info.dexMarket
+        : depositReserve.info.dexMarket;
+
+    const dexMarket = await cache.query(connection, dexMarketAddress, DexMarketParser);
+
+    if (!dexMarket) {
+        throw new Error(`Dex market doesn't exist.`);
+    }
+
+    const market = await cache.query(connection, depositReserve.info.lendingMarket, LendingMarketParser) as ParsedAccount<LendingMarket>;
+
+    const dexOrderBookSide = market.info.quoteMint.equals(
+        depositReserve.info.liquidityMint
+    )
+        ? dexMarket?.info.bids
+        : dexMarket?.info.asks;
+
+    const memory = createTempMemoryAccount(
+        instructions,
+        wallet.publicKey,
+        signers
+    );
+    // deposit
+    instructions.push(
+        borrowInstruction(
+            amountLamports,
+            amountType,
+            fromAccount,
+            toAccount,
+            depositReserve.pubkey,
+            depositReserve.info.collateralSupply,
+            borrowReserve.pubkey,
+            borrowReserve.info.liquiditySupply,
+
+            obligation,
+            obligationMint,
+            obligationTokenOutput,
+            wallet.publicKey,
+
+            authority,
+
+            dexMarketAddress,
+            dexOrderBookSide,
+
+            memory
+        )
+    );
+    try {
+        let tx = await sendTransaction(
+            connection,
+            wallet,
+            instructions.concat(cleanupInstructions),
+            signers,
+            true,
+            sendMessageCallback
+        );
+
+        sendMessageCallback({
+            message: "Funds borrowed.",
+            type: "success",
+            description: `Transaction - ${tx.slice(0, 4)}...${tx.slice(-4)}`,
+        });
     } catch (e) {
-        console.log('borrow action error', e)
+        // TODO:
+        throw new Error();
     }
 };
