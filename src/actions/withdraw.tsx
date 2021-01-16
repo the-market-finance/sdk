@@ -4,17 +4,17 @@ import {
     PublicKey,
     TransactionInstruction,
 } from "@solana/web3.js";
-import {LendingReserve, withdrawInstruction} from "./../models/lending";
+import {LendingReserve, reserveMarketCap, withdrawInstruction} from "../models/lending";
 import {AccountLayout, Token} from "@solana/spl-token";
-import {LENDING_PROGRAM_ID, programIds, TOKEN_PROGRAM_ID} from "../constants/ids";
+import {LENDING_PROGRAM_ID, programIds, TOKEN_PROGRAM_ID} from "../constants";
 import {findOrCreateAccountByMint} from "./account";
 import {TokenAccount} from "../models";
 import {sendTransaction} from "../contexts/connection";
-import {TokenAccountParser} from "../contexts/accounts";
+import {cache, TokenAccountParser, MintParser} from "../contexts/accounts";
+import {fromLamports} from "../utils/utils";
 
 export const withdraw = async (
-    from: TokenAccount, // CollateralAccount
-    amountLamports: number, // in collateral token (lamports)
+    value:string,
     reserve: LendingReserve,
     reserveAddress: PublicKey,
     connection: Connection,
@@ -36,6 +36,61 @@ export const withdraw = async (
     const signers: Account[] = [];
     const instructions: TransactionInstruction[] = [];
     const cleanupInstructions: TransactionInstruction[] = [];
+
+    // fetch from
+    const accountsbyOwner = await connection.getTokenAccountsByOwner(wallet?.publicKey, {
+        programId: programIds().token,
+    });
+    const prepareUserAccounts = accountsbyOwner.value.map(r => TokenAccountParser(r.pubkey, r.account));
+
+    const selectUserAccounts = prepareUserAccounts
+        .filter(
+            (a) => a && a.info.owner.toBase58() === wallet.publicKey?.toBase58()
+        )
+        .map((a) => a as TokenAccount);
+
+    const userAccounts = selectUserAccounts.filter(
+        (a) => a !== undefined
+    ) as TokenAccount[];
+
+    const fromAccounts = userAccounts
+        .filter(
+            (acc) =>
+                reserve.collateralMint.equals(acc.info.mint)
+        )
+        .sort((a, b) => b.info.amount.sub(a.info.amount).toNumber());
+
+
+    if (!fromAccounts.length){throw Error('from account not found.')}
+
+    const from = fromAccounts[0];
+
+    // fetch from end
+
+    //get Lampots treatmend value
+
+    const balanceLamports = fromAccounts.reduce(
+        (res, item) => (res += item.info.amount.toNumber()),
+        0
+    );
+
+    const MintId = reserve?.collateralMint.toBase58()
+
+    const mintInfo = await new Promise<any>((resolve,reject) =>{
+        cache.query(connection, MintId, MintParser)
+            .then((acc) => resolve(acc?.info as any))
+            .catch((err) => reject(err));
+    })
+
+    const collateralRatioLamports =
+        reserveMarketCap(reserve) *
+        (balanceLamports / (reserve?.collateralMintSupply.toNumber() || 1));
+
+    const collateralBalanceInLiquidity = fromLamports(collateralRatioLamports, mintInfo);
+
+    const amountLamports = Math.ceil(balanceLamports * (parseFloat(value) / collateralBalanceInLiquidity))
+
+    ///get Lampots treatmend value end
 
     const accountRentExempt = await connection.getMinimumBalanceForRentExemption(
         AccountLayout.span
@@ -92,7 +147,7 @@ export const withdraw = async (
             instructions.concat(cleanupInstructions),
             signers,
             true,
-            sendMessageCallback
+            (msg) => sendMessageCallback(msg)
         );
 
         sendMessageCallback({

@@ -105,7 +105,7 @@ export const sendTransaction = async (
         message: "Transaction failed...",
         address:txid,
         description: errors,
-        type: "transaction error",
+        type: "error",
       });
 
       throw new Error(
