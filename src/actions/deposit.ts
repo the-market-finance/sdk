@@ -20,8 +20,8 @@ import {
 } from "./account";
 import {TokenAccount} from "../models";
 import {sendTransaction} from "../contexts/connection";
-import {formatPct, wadToLamports} from "../utils/utils";
-import {TokenAccountParser} from "../contexts/accounts";
+import {formatPct, fromLamports, wadToLamports} from "../utils/utils";
+import {cache, MintParser, TokenAccountParser} from "../contexts/accounts";
 
 export const depositApyVal = (reserve: LendingReserve):string => {
     const totalBorrows = wadToLamports(reserve.borrowedLiquidityWad).toNumber();
@@ -52,8 +52,7 @@ export const getDepositApy = async (connection: Connection, publicKey: string | 
 }
 
 export const deposit = async (
-    from: TokenAccount,
-    amountLamports: number,
+    value: string,
     reserve: LendingReserve,
     reserveAddress: PublicKey,
     connection: Connection,
@@ -79,6 +78,59 @@ export const deposit = async (
     const signers: Account[] = [];
     const instructions: TransactionInstruction[] = [];
     const cleanupInstructions: TransactionInstruction[] = [];
+
+    // fetch from
+
+    const accountsbyOwner = await connection.getTokenAccountsByOwner(wallet?.publicKey, {
+        programId: programIds().token,
+    });
+    const prepareUserAccounts = accountsbyOwner.value.map(r => TokenAccountParser(r.pubkey, r.account));
+
+    const selectUserAccounts = prepareUserAccounts
+        .filter(
+            (a) => a && a.info.owner.toBase58() === wallet.publicKey?.toBase58()
+        )
+        .map((a) => a as TokenAccount);
+
+    const userAccounts = selectUserAccounts.filter(
+        (a) => a !== undefined
+    ) as TokenAccount[];
+
+    const fromAccounts = userAccounts
+        .filter(
+            (acc) =>
+                reserve.liquidityMint.equals(acc.info.mint)
+        )
+        .sort((a, b) => b.info.amount.sub(a.info.amount).toNumber());
+
+
+    if (!fromAccounts.length){throw Error('from account not found.')}
+
+    const from = fromAccounts[0];
+
+    // fetch from end
+
+    //get Lampots treatmend value
+
+    const balanceLamports = fromAccounts.reduce(
+        (res, item) => (res += item.info.amount.toNumber()),
+        0
+    );
+
+    const MintId = reserve?.liquidityMint.toBase58()
+
+    const mintInfo = await new Promise<any>((resolve,reject) =>{
+        cache.query(connection, MintId, MintParser)
+            .then((acc) => resolve(acc?.info as any))
+            .catch((err) => reject(err));
+    })
+
+    const balance = fromLamports(balanceLamports, mintInfo);
+
+    const amountLamports = Math.ceil(balanceLamports * (parseFloat(value) / balance))
+
+
+    ///get Lampots treatmend value end
 
     const accountRentExempt = await connection.getMinimumBalanceForRentExemption(
         AccountLayout.span
@@ -189,4 +241,6 @@ export const deposit = async (
         throw new Error();
     }
 };
+
+
 
