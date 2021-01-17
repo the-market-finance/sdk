@@ -34,6 +34,16 @@ import {formatNumber, formatPct, fromLamports, toLamports, wadToLamports} from "
 import {sendTransaction} from "../contexts/connection";
 import {DexMarketParser, OrderBookParser} from "../models/dex";
 
+
+/**
+ * информационный запрос, выводящий сколько можно занять в долг
+ *
+ * @param connection: Connection
+ * @param wallet:Wallet
+ * @param publicKey:string | PublicKey (адресс токена)
+ * @return  Promise<string>
+ * @async
+ */
 export const availableForBorrow = async (connection: Connection, wallet: any, publicKey: string | PublicKey): Promise<string> => {
     const pk = typeof publicKey === "string" ? publicKey : publicKey?.toBase58();
 
@@ -122,7 +132,18 @@ export const getBorrowApy = async (connection: Connection, publicKey: string | P
     return formatPct.format(apy)
 }
 
-
+/**
+ * создание заявки на кредит (borrow)
+ *
+ * @param connection:Connection
+ * @param wallet:Wallet
+ * @param amount:number  (сумма займа как Float)
+ * @param collateralAddress: PublicKey | string (адресс или PublicKey токена для залога)
+ * @param borrowReserve: ParsedAccount<LendingReserve> (можно получить через getReserveAccounts(connection, address)[0]))
+ * @param notifyCallback?: (message:object) => void | any (например функция notify из antd)
+ * @return  void
+ * @async
+ */
 export const borrow = async (
     connection: Connection,
     wallet: any,

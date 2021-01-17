@@ -10,8 +10,16 @@ import {Connection, PublicKey} from "@solana/web3.js";
 import {ParsedAccount, TokenAccountParser} from "../contexts/accounts";
 import {TokenAccount} from "../models";
 
-
-export const getReserveAccounts = async (connection: Connection, address?: string | PublicKey) => {
+/**
+ * Получение аккаунтов по лендингу для операций deposit, borrow.
+ *
+ * @param connection:Connection
+ * (необязательный, передаётся для получение одного аккаунта по этому адрессу, тоесть массив из 1 елемента)
+ * @param address?: string | PublicKey
+ * @return  Promise<ParsedAccount<LendingReserve>[]>
+ * @async
+ */
+export const getReserveAccounts = async (connection: Connection, address?: string | PublicKey):Promise<ParsedAccount<LendingReserve>[]> => {
     const id = typeof address === "string" ? address : address?.toBase58();
     const programAccounts = await connection.getProgramAccounts(
         LENDING_PROGRAM_ID
@@ -25,8 +33,59 @@ export const getReserveAccounts = async (connection: Connection, address?: strin
 
     return !id ? lendingReserveAccounts : lendingReserveAccounts.filter(acc => acc?.pubkey.toBase58() === id)
 }
+/**
+ * Получение распарсенных токенов по лендингу, для операций (deposit, withdraw)
+ *
+ * @param connection:Connection
+ * @param wallet: Wallet
+ * @return  Promise<ParsedAccount<TokenAccount>[]>
+ * @async
+ */
+export const getUserDeposit = async (connection: Connection, wallet:any) => {
+
+    const reserveAccounts = await getReserveAccounts(connection);
+
+    const accountsbyOwner = await connection.getTokenAccountsByOwner(wallet?.publicKey, {
+        programId: programIds().token,
+    });
+
+    const reservesByCollateralMint = reserveAccounts.reduce((result, item) => {
+        result.set(item.info.collateralMint.toBase58(), item);
+        return result;
+    }, new Map<string, ParsedAccount<LendingReserve>>());
 
 
+    const prepareUserAccounts = accountsbyOwner.value.map(r => TokenAccountParser(r.pubkey, r.account));
+
+    const selectUserAccounts = prepareUserAccounts
+        .filter(
+            (a) => a && a.info.owner.toBase58() === wallet.publicKey?.toBase58()
+        )
+        .map((a) => a as TokenAccount);
+
+    const userAccounts = selectUserAccounts.filter(
+        (a) => a !== undefined
+    ) as TokenAccount[];
+
+    return userAccounts
+        .filter((acc) => reservesByCollateralMint.has(acc.info.mint.toBase58()))
+        .map((item) => ({
+            account: item,
+            reserve: reservesByCollateralMint.get(
+                item.info.mint.toBase58()
+            ) as ParsedAccount<LendingReserve>,
+        }));
+}
+/**
+ * Получение облигаций с аккаунтом пользователя , для операций repay
+ *
+ * @param connection:Connection
+ * @param wallet: Wallet
+ * (необязательный, передаётся для получение одного аккаунта по этому адрессу, тоесть массив из 1 елемента)
+ * @param address?: string | PublicKey
+ * @return  Promise<{obligation:any, userAccounts:any}[]>
+ * @async
+ */
 export const getUserObligations = async (connection: Connection, wallet:any,address?: string | PublicKey) => {
     const id = typeof address === "string" ? address : address?.toBase58();
     const programAccounts = await connection.getProgramAccounts(

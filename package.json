@@ -1,6 +1,6 @@
 {
   "name": "tmf-sdk",
-  "version": "6.0.96",
+  "version": "6.0.97",
   "description": "sdk package",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",

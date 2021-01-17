@@ -23,6 +23,12 @@ import {sendTransaction} from "../contexts/connection";
 import {formatPct, fromLamports, wadToLamports} from "../utils/utils";
 import {cache, MintParser, TokenAccountParser} from "../contexts/accounts";
 
+/**
+ * информационный запрос, выводящий текущую ставку по депозиту APY
+ *
+ * @param reserve:LendingReserve (можно получить через getReserveAccounts)
+ * @return  string
+ */
 export const depositApyVal = (reserve: LendingReserve):string => {
     const totalBorrows = wadToLamports(reserve.borrowedLiquidityWad).toNumber();
     const currentUtilization =
@@ -31,7 +37,14 @@ export const depositApyVal = (reserve: LendingReserve):string => {
     const borrowAPY = calculateBorrowAPY(reserve);
     return formatPct.format(currentUtilization * borrowAPY);
 };
-
+/**
+ * информационный запрос, выводящий текущую ставку по депозиту APY
+ *
+ * @param connection:Connection
+ * @param publicKey: string | PublicKey
+ * @return  Promise<string>
+ * @async
+ */
 export const getDepositApy = async (connection: Connection, publicKey: string | PublicKey):Promise<string> => {
     const pk = typeof publicKey === "string" ? publicKey : publicKey?.toBase58();
     const programAccounts = await connection.getProgramAccounts(
@@ -51,6 +64,19 @@ export const getDepositApy = async (connection: Connection, publicKey: string | 
     return formatPct.format(apy)
 }
 
+
+/**
+ * создание депозита (deposit)
+ *
+ * @param value:string
+ * @param reserve:LendingReserve (можно получить через getReserveAccounts(connection, address)[0].info)
+ * @param reserveAddress:PublicKey (можно получить через getReserveAccounts(connection, address)[0].pubkey)
+ * @param connection: Connection
+ * @param wallet:Wallet
+ * @param notifyCallback?: (message:object) => void | any (например функция notify из antd)
+ * @return  void
+ * @async
+ */
 export const deposit = async (
     value: string,
     reserve: LendingReserve,
