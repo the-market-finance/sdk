@@ -47,7 +47,7 @@ export const getReserveAccounts = async (
 ):Promise<ParsedAccount<LendingReserve>[]> => {...}
 
 /**
- * Получение распарсенных токенов депозитов, для операций (withdraw)
+ * Получение распарсенных токенов депозитов пользователя, для операций (withdraw)
  *
  * @param connection:Connection
  * @param wallet: Wallet
@@ -63,7 +63,7 @@ export const getUserDeposit = async (
 ) => {...}
 
 /**
- * Получение облигаций по аккаунту, по займам для операций (погашение)
+ * Получение облигаций по аккаунту пользователя, по займам для операций (погашение)
  *
  * @param connection:Connection
  * @param wallet: Wallet
