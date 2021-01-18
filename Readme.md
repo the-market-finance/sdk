@@ -24,9 +24,9 @@ npm install tmf-sdk
 ## 🔨 Использование(получение)
 ```jsx
 import 
-    {deposit, borrow, repay, withdraw,
-    getReserveAccounts, getUserObligations, getUserDeposit,
-    getBorrowApy, borrowApyVal, availableForBorrow, getDepositApy, depositApyVal} from 'tmf-sdk';
+    {deposit, borrow, repay, withdraw, getReserveAccounts,
+     getUserObligations, getUserDeposit, getBorrowApy,
+     borrowApyVal, availableForBorrow, getDepositApy, depositApyVal} from 'tmf-sdk';
 ```
 
 ## 🖥 Инфа по функциям
@@ -41,7 +41,10 @@ import
  * @return  Promise<ParsedAccount<LendingReserve>[]>
  * @async
  */
-export const getReserveAccounts = async (connection: Connection, address?: string | PublicKey):Promise<ParsedAccount<LendingReserve>[]> => {...}
+export const getReserveAccounts = async (
+    connection: Connection,
+    address?: string | PublicKey
+):Promise<ParsedAccount<LendingReserve>[]> => {...}
 
 /**
  * Получение распарсенных токенов по лендингу, для операций (deposit, withdraw)
@@ -63,7 +66,11 @@ export const getUserDeposit = async (connection: Connection, wallet:any) => {...
  * @return  Promise<{obligation:any, userAccounts:any}[]>
  * @async
  */
-export const getUserObligations = async (connection: Connection, wallet:any,address?: string | PublicKey) => {...}
+export const getUserObligations = async (
+    connection: Connection,
+    wallet:any,
+    address?: string | PublicKey
+) => {...}
 
 /**
  * информационный запрос, выводящий текущую ставку по депозиту APY
@@ -73,7 +80,10 @@ export const getUserObligations = async (connection: Connection, wallet:any,addr
  * @return  Promise<string>
  * @async
  */
-export const getDepositApy = async (connection: Connection, publicKey: string | PublicKey):Promise<string> => {...}
+export const getDepositApy = async (
+    connection: Connection,
+    publicKey: string | PublicKey
+):Promise<string> => {...}
 
 /**
  * информационный запрос, выводящий текущую ставку по депозиту APY
@@ -114,7 +124,11 @@ export const deposit = async (
  * @return  Promise<string>
  * @async
  */
-export const availableForBorrow = async (connection: Connection, wallet: any, publicKey: string | PublicKey): Promise<string> => {...}
+export const availableForBorrow = async (
+    connection: Connection,
+    wallet: any,
+    publicKey: string | PublicKey
+): Promise<string> => {...}
 
 /**
  * создание заявки на кредит (borrow)
@@ -135,7 +149,7 @@ export const borrow = async (
     collateralAddress: PublicKey | string,
     borrowReserve: ParsedAccount<LendingReserve>,
     notifyCallback?: (message: object) => void | any
-) => {...}
+): Promise<void> => {...}
 
 ```
 
@@ -148,8 +162,8 @@ import {getReserveAccounts,deposit, borrow} from 'tmf-sdk';
 
 const value = '0.5' // значение какое кладём на депозит
 const callback = (msg) => console.log(msg) // функция notify Для вывода информации о процессе 
-const connection = new Connection();
-const wallet = new Wallet();
+const connection = new Connection(...args);
+const wallet = new Wallet(...args);
 
 async function test(){
     const reserveAccounts = await getReserveAccounts(connection);
