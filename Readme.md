@@ -47,17 +47,23 @@ export const getReserveAccounts = async (
 ):Promise<ParsedAccount<LendingReserve>[]> => {...}
 
 /**
- * Получение распарсенных токенов по лендингу, для операций (deposit, withdraw)
+ * Получение распарсенных токенов депозитов по лендингу, для операций (deposit, withdraw)
  *
  * @param connection:Connection
  * @param wallet: Wallet
+ * (необязательный, передаётся для получение одного аккаунта по этому адресу, тоесть массив из 1 елемента)
+ * @param address?: string | PublicKey
  * @return  Promise<ParsedAccount<TokenAccount>[]>
  * @async
  */
-export const getUserDeposit = async (connection: Connection, wallet:any) => {...}
+export const getUserDeposit = async (
+    connection: Connection,
+    wallet:any,
+    address?: string | PublicKey
+) => {...}
 
 /**
- * Получение облигаций с аккаунтом пользователя , для операций repay
+ * Получение облигаций по аккаунту, по займам
  *
  * @param connection:Connection
  * @param wallet: Wallet
@@ -135,7 +141,7 @@ export const availableForBorrow = async (
  *
  * @param connection:Connection
  * @param wallet:Wallet
- * @param amount:number  (сумма займа как Float)
+ * @param amount:number  (количество займа как Float)
  * @param collateralAddress: PublicKey | string (адресс или PublicKey токена для залога)
  * @param borrowReserve: ParsedAccount<LendingReserve> (можно получить через getReserveAccounts(connection, address)[0]))
  * @param notifyCallback?: (message:object) => void | any (например функция notify из antd)
@@ -151,21 +157,71 @@ export const borrow = async (
     notifyCallback?: (message: object) => void | any
 ): Promise<void> => {...}
 
+
+/**
+ * вывод средств с депозита (withdraw)
+ *
+ * @param value:string  (количество)
+ * @param reserve:LendingReserve (можно получить через getReserveAccounts(connection, address)[0].info)
+ * @param reserveAddress:PublicKey (можно получить через getReserveAccounts(connection, address)[0].pubkey)
+ * @param connection:Connection
+ * @param wallet:Wallet
+ * @param notifyCallback?: (message:object) => void | any (например функция notify из antd)
+ * @return  void
+ * @async
+ */
+export const withdraw = async (
+    value:string,
+    reserve: LendingReserve,
+    reserveAddress: PublicKey,
+    connection: Connection,
+    wallet: any,
+    notifyCallback?: (message: object) => void | any
+) => {...}
+
+
+/**
+ * погашение кредита (repay)
+ *
+ * @param value:string  (количество)
+ * @param obligationAddress:PublicKey | string (адресс токена погашение кредита)
+ * @param collateralAddress: PublicKey | string (адресс токена залога)
+ * @param connection:Connection
+ * @param wallet:Wallet
+ * @param notifyCallback?: (message:object) => void | any (например функция notify из antd)
+ * @return  void
+ * @async
+ */
+export const repay = async (
+    value: string, // (количество)
+    obligationAddress:PublicKey | string, // (адресс токена погашение кредита)
+    collateralAddress: PublicKey | string,// (адресс токена залога)
+    connection: Connection,
+    wallet: any,
+    notifyCallback?: (message: object) => void | any
+) => {...}
+
 ```
 
 ## ⌨️ Примеры использования
 ```jsx
-// для депозита
-
-import {getReserveAccounts,deposit, borrow} from 'tmf-sdk';
+import 
+    {deposit, borrow, repay, withdraw, getReserveAccounts,
+     getUserObligations, getUserDeposit, getBorrowApy,
+     borrowApyVal, availableForBorrow, getDepositApy, depositApyVal} from 'tmf-sdk';
 
 
 const value = '0.5' // значение какое кладём на депозит
 const callback = (msg) => console.log(msg) // функция notify Для вывода информации о процессе 
 const connection = new Connection(...args);
 const wallet = new Wallet(...args);
+// id токена для операции
+const id = new PublicKey('87zx7zvUhptEFhatCcdcFsdFZsv5tx3CdyTXxv2ms5CK') || '87zx7zvUhptEFhatCcdcFsdFZsv5tx3CdyTXxv2ms5CK';
+// токен для залога
+const collateralKey = new PublicKey('87zx7zvUhptEFhatCcdcFsdFZsv5tx3CdyTXxv2ms5CK') || '87zx7zvUhptEFhatCcdcFsdFZsv5tx3CdyTXxv2ms5CK';
+// ДЕПОЗИТ 
 
-async function test(){
+async function deposit_test(){
     const reserveAccounts = await getReserveAccounts(connection);
     reserveAccounts.map(async (account, index) => {
         const reserve = account.info;
@@ -174,21 +230,17 @@ async function test(){
     });
 };
 // или 
-// id токена для операции
-const id = new PublicKey('87zx7zvUhptEFhatCcdcFsdFZsv5tx3CdyTXxv2ms5CK') || '87zx7zvUhptEFhatCcdcFsdFZsv5tx3CdyTXxv2ms5CK';
-
-async function test2(){
+async function deposit_test2(){
         const lendingReserve = await getReserveAccounts(connection, id);
         if (lendingReserve.length){
             await deposit(value, lendingReserve[0].info, lendingReserve[0].pubkey, connection, wallet, callback)
         }         
         
     }
-// для borrow
 
-// токен для залога
-const collateralKey = new PublicKey('87zx7zvUhptEFhatCcdcFsdFZsv5tx3CdyTXxv2ms5CK') || '87zx7zvUhptEFhatCcdcFsdFZsv5tx3CdyTXxv2ms5CK';
-async function test(){
+// ЗАЁМ
+
+async function borrow_test(){
     const reserveAccounts = await getReserveAccounts(connection);
     reserveAccounts.map(async (account, index) => {
         const borrowReserve = account
@@ -196,7 +248,7 @@ async function test(){
     });
 };
 
-async function test2(){
+async function borrow_test2(){
         const lendingReserve = await getReserveAccounts(connection, id);
         if (lendingReserve.length){
             const borrowReserve = lendingReserve[0]
@@ -204,4 +256,40 @@ async function test2(){
         }         
         
     }
+//СНЯТИЕ
+async function withdraw_test(){
+    const userDeposits = await getUserDeposit(connection,wallet);
+    userDeposits.map(async (deposit, index) => {
+        const reserveAcc = await await getReserveAccounts(connection, deposit.reserve.pubkey);
+        await withdraw(value, reserveAcc.info, reserveAcc.pubkey, connection, wallet, callback)
+    });
+};
+
+async function withdraw_test2(){
+        const lendingReserve = await getReserveAccounts(connection, id);
+        if (lendingReserve.length){
+            await withdraw(value, lendingReserve.info, lendingReserve.pubkey, connection, wallet, callback)
+        }         
+        
+    }
+
+//ПОГАШЕНИЕ
+async function repay_test(){
+    const userObligations = await getUserObligations(connection,wallet);
+    userObligations.map(async (item, index) => {
+        await repay(value, item.obligation.pubkey, collateralKey, connection, wallet, callback)
+    });
+};
+
+async function repay_test2(){
+            const lendingReserve = await getReserveAccounts(connection, id);
+            if (lendingReserve.length){
+                await repay(value, lendingReserve.pubkey, collateralKey, connection, wallet, callback)
+            }  
+};
+
+
+
+
+
 ```

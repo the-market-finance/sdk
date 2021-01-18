@@ -15,10 +15,25 @@ import {cache, MintParser, ParsedAccount, TokenAccountParser} from "../contexts/
 import {sendTransaction} from "../contexts/connection";
 import {fromLamports, wadToLamports} from "../utils/utils";
 
+
+
+
+/**
+ * погашение кредита (repay)
+ *
+ * @param value:string  (количество)
+ * @param obligationAddress:PublicKey | string (адресс токена погашение кредита)
+ * @param collateralAddress: PublicKey | string (адресс токена залога)
+ * @param connection:Connection
+ * @param wallet:Wallet
+ * @param notifyCallback?: (message:object) => void | any (например функция notify из antd)
+ * @return  void
+ * @async
+ */
 export const repay = async (
-    value: string, // in collateral token (lamports)
-    obligationAddress:PublicKey | string, // obligation: ParsedAccount<LendingObligation>,
-    collateralAddress: PublicKey | string,// withdrawReserve: ParsedAccount<LendingReserve>,
+    value: string, // in collateral token (lamports)(сумма)
+    obligationAddress:PublicKey | string, // (адресс токена погашение кредита)
+    collateralAddress: PublicKey | string,// (адресс токена залога)
     connection: Connection,
     wallet: any,
     notifyCallback?: (message: object) => void | any

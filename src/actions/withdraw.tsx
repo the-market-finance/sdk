@@ -13,6 +13,20 @@ import {sendTransaction} from "../contexts/connection";
 import {cache, TokenAccountParser, MintParser} from "../contexts/accounts";
 import {fromLamports} from "../utils/utils";
 
+
+
+/**
+ * вывод средств с депозита (withdraw)
+ *
+ * @param value:string  (количество)
+ * @param reserve:LendingReserve (можно получить через getReserveAccounts(connection, address)[0].info)
+ * @param reserveAddress:PublicKey (можно получить через getReserveAccounts(connection, address)[0].pubkey)
+ * @param connection:Connection
+ * @param wallet:Wallet
+ * @param notifyCallback?: (message:object) => void | any (например функция notify из antd)
+ * @return  void
+ * @async
+ */
 export const withdraw = async (
     value:string,
     reserve: LendingReserve,

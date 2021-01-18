@@ -14,7 +14,7 @@ import {TokenAccount} from "../models";
  * Получение аккаунтов по лендингу для операций deposit, borrow.
  *
  * @param connection:Connection
- * (необязательный, передаётся для получение одного аккаунта по этому адрессу, тоесть массив из 1 елемента)
+ * (необязательный, передаётся для получение одного аккаунта по этому адресу, тоесть массив из 1 елемента)
  * @param address?: string | PublicKey
  * @return  Promise<ParsedAccount<LendingReserve>[]>
  * @async
@@ -34,14 +34,18 @@ export const getReserveAccounts = async (connection: Connection, address?: strin
     return !id ? lendingReserveAccounts : lendingReserveAccounts.filter(acc => acc?.pubkey.toBase58() === id)
 }
 /**
- * Получение распарсенных токенов по лендингу, для операций (deposit, withdraw)
+ * Получение распарсенных токенов депозитов по лендингу, для операций (deposit, withdraw)
  *
  * @param connection:Connection
  * @param wallet: Wallet
+ * (необязательный, передаётся для получение одного аккаунта по этому адресу, тоесть массив из 1 елемента)
+ * @param address?: string | PublicKey
  * @return  Promise<ParsedAccount<TokenAccount>[]>
  * @async
  */
-export const getUserDeposit = async (connection: Connection, wallet:any) => {
+export const getUserDeposit = async (connection: Connection, wallet:any, address?: string | PublicKey ) => {
+
+    const id = typeof address === "string" ? address : address?.toBase58();
 
     const reserveAccounts = await getReserveAccounts(connection);
 
@@ -67,7 +71,7 @@ export const getUserDeposit = async (connection: Connection, wallet:any) => {
         (a) => a !== undefined
     ) as TokenAccount[];
 
-    return userAccounts
+    const userDepositAccounts = userAccounts
         .filter((acc) => reservesByCollateralMint.has(acc.info.mint.toBase58()))
         .map((item) => ({
             account: item,
@@ -75,6 +79,8 @@ export const getUserDeposit = async (connection: Connection, wallet:any) => {
                 item.info.mint.toBase58()
             ) as ParsedAccount<LendingReserve>,
         }));
+
+    return !id ? userDepositAccounts : await getReserveAccounts(connection, id);
 }
 /**
  * Получение облигаций с аккаунтом пользователя , для операций repay

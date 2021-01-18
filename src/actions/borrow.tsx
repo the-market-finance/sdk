@@ -137,7 +137,7 @@ export const getBorrowApy = async (connection: Connection, publicKey: string | P
  *
  * @param connection:Connection
  * @param wallet:Wallet
- * @param amount:number  (сумма займа как Float)
+ * @param amount:number  (количество займа как Float)
  * @param collateralAddress: PublicKey | string (адресс или PublicKey токена для залога)
  * @param borrowReserve: ParsedAccount<LendingReserve> (можно получить через getReserveAccounts(connection, address)[0]))
  * @param notifyCallback?: (message:object) => void | any (например функция notify из antd)
