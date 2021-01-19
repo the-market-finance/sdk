@@ -10,6 +10,7 @@ import {Connection, PublicKey} from "@solana/web3.js";
 import {ParsedAccount, TokenAccountParser} from "../contexts/accounts";
 import {TokenAccount} from "../models";
 
+let endpoint;
 /**
  * Получение аккаунтов по лендингу для операций deposit, borrow.
  *

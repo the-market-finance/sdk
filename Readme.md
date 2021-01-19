@@ -213,7 +213,7 @@ import
 
 const value = '0.5' // значение какое кладём на депозит
 const callback = (msg) => console.log(msg) // функция notify Для вывода информации о процессе 
-const connection = new Connection(...args);
+const connection = new Connection("https://solana-api.projectserum.com", "recent");
 const wallet = new Wallet(...args);
 // id токена для операции
 const id = new PublicKey('87zx7zvUhptEFhatCcdcFsdFZsv5tx3CdyTXxv2ms5CK') || '87zx7zvUhptEFhatCcdcFsdFZsv5tx3CdyTXxv2ms5CK';
@@ -221,7 +221,7 @@ const id = new PublicKey('87zx7zvUhptEFhatCcdcFsdFZsv5tx3CdyTXxv2ms5CK') || '87z
 const collateralKey = new PublicKey('87zx7zvUhptEFhatCcdcFsdFZsv5tx3CdyTXxv2ms5CK') || '87zx7zvUhptEFhatCcdcFsdFZsv5tx3CdyTXxv2ms5CK';
 // ДЕПОЗИТ 
 
-async function deposit_test(){
+async function deposit_example(){
     const reserveAccounts = await getReserveAccounts(connection);
     reserveAccounts.map(async (account, index) => {
         const reserve = account.info;
@@ -230,7 +230,7 @@ async function deposit_test(){
     });
 };
 // или 
-async function deposit_test2(){
+async function deposit_example2(){
         const lendingReserve = await getReserveAccounts(connection, id);
         if (lendingReserve.length){
             await deposit(value, lendingReserve[0].info, lendingReserve[0].pubkey, connection, wallet, callback)
@@ -240,7 +240,7 @@ async function deposit_test2(){
 
 // ЗАЁМ
 
-async function borrow_test(){
+async function borrow_example(){
     const reserveAccounts = await getReserveAccounts(connection);
     reserveAccounts.map(async (account, index) => {
         const borrowReserve = account
@@ -248,7 +248,7 @@ async function borrow_test(){
     });
 };
 
-async function borrow_test2(){
+async function borrow_example2(){
         const lendingReserve = await getReserveAccounts(connection, id);
         if (lendingReserve.length){
             const borrowReserve = lendingReserve[0]
@@ -257,7 +257,7 @@ async function borrow_test2(){
         
     }
 //СНЯТИЕ
-async function withdraw_test(){
+async function withdraw_example(){
     const userDeposits = await getUserDeposit(connection,wallet);
     userDeposits.map(async (deposit, index) => {
         const reserveAcc = await await getReserveAccounts(connection, deposit.reserve.pubkey);
@@ -265,7 +265,7 @@ async function withdraw_test(){
     });
 };
 
-async function withdraw_test2(){
+async function withdraw_example2(){
         const lendingReserve = await getReserveAccounts(connection, id);
         if (lendingReserve.length){
             await withdraw(value, lendingReserve.info, lendingReserve.pubkey, connection, wallet, callback)
@@ -274,14 +274,14 @@ async function withdraw_test2(){
     }
 
 //ПОГАШЕНИЕ
-async function repay_test(){
+async function repay_example(){
     const userObligations = await getUserObligations(connection,wallet);
     userObligations.map(async (item, index) => {
         await repay(value, item.obligation.pubkey, collateralKey, connection, wallet, callback)
     });
 };
 
-async function repay_test2(){
+async function repay_example2(){
             const lendingReserve = await getReserveAccounts(connection, id);
             if (lendingReserve.length){
                 await repay(value, lendingReserve.pubkey, collateralKey, connection, wallet, callback)
