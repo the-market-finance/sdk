@@ -17,12 +17,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/the-market-finance/sdk.git"
+    "url": "git+https://github.com/TheMarketDefi/sdk.git"
   },
   "bugs": {
-    "url": "https://github.com/the-market-finance/sdk/issues"
+    "url": "https://github.com/TheMarketDefi/sdk/issues"
   },
-  "homepage": "https://github.com/the-market-finance/sdk#readme",
+  "homepage": "https://github.com/TheMarketDefi/sdk#readme",
   "keywords": [],
   "author": "",
   "license": "ISC",
