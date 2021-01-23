@@ -22,6 +22,7 @@ import {TokenAccount} from "../models";
 import {sendTransaction} from "../contexts/connection";
 import {formatPct, fromLamports, wadToLamports} from "../utils/utils";
 import {cache, MintParser, TokenAccountParser} from "../contexts/accounts";
+import {getUserAccounts} from "./common";
 
 /**
  * информационный запрос, выводящий текущую ставку по депозиту APY
@@ -107,20 +108,7 @@ export const deposit = async (
 
     // fetch from
 
-    const accountsbyOwner = await connection.getTokenAccountsByOwner(wallet?.publicKey, {
-        programId: programIds().token,
-    });
-    const prepareUserAccounts = accountsbyOwner.value.map(r => TokenAccountParser(r.pubkey, r.account));
-
-    const selectUserAccounts = prepareUserAccounts
-        .filter(
-            (a) => a && a.info.owner.toBase58() === wallet.publicKey?.toBase58()
-        )
-        .map((a) => a as TokenAccount);
-
-    const userAccounts = selectUserAccounts.filter(
-        (a) => a !== undefined
-    ) as TokenAccount[];
+    const userAccounts = await getUserAccounts(connection, wallet);
 
     const fromAccounts = userAccounts
         .filter(

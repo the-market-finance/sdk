@@ -33,6 +33,7 @@ import {
 import {formatNumber, formatPct, fromLamports, toLamports, wadToLamports} from "../utils/utils";
 import {sendTransaction} from "../contexts/connection";
 import {DexMarketParser, OrderBookParser} from "../models/dex";
+import {getUserAccounts} from "./common";
 
 
 /**
@@ -60,22 +61,7 @@ export const availableForBorrow = async (connection: Connection, wallet: any, pu
     if (!lendingReserveAccount || lendingReserveAccount.length === 0 || !wallet.publicKey) return '--';
     const reserveLendingAccount = lendingReserveAccount[0]?.info;
 
-
-    const accountsbyOwner = await connection.getTokenAccountsByOwner(wallet?.publicKey, {
-        programId: programIds().token,
-    });
-    const prepareUserAccounts = accountsbyOwner.value.map(r => TokenAccountParser(r.pubkey, r.account));
-
-    const selectUserAccounts = prepareUserAccounts
-        .filter(
-            (a) => a && a.info.owner.toBase58() === wallet.publicKey?.toBase58()
-        )
-        .map((a) => a as TokenAccount);
-
-
-    const userAccounts = selectUserAccounts.filter(
-        (a) => a !== undefined
-    ) as TokenAccount[];
+    const userAccounts = await getUserAccounts(connection, wallet);
 
     const accounts = userAccounts
         .filter(
@@ -179,20 +165,7 @@ export const borrow = async (
     //set depositReserve(collateral reserve)
     const depositReserve: ParsedAccount<LendingReserve> = lendingReserveAccount[0] as ParsedAccount<LendingReserve>
 
-    const accountsbyOwner = await connection.getTokenAccountsByOwner(wallet?.publicKey, {
-        programId: programIds().token,
-    });
-    const prepareUserAccounts = accountsbyOwner.value.map(r => TokenAccountParser(r.pubkey, r.account));
-
-    const selectUserAccounts = prepareUserAccounts
-        .filter(
-            (a) => a && a.info.owner.toBase58() === wallet.publicKey?.toBase58()
-        )
-        .map((a) => a as TokenAccount);
-
-    const userAccounts = selectUserAccounts.filter(
-        (a) => a !== undefined
-    ) as TokenAccount[];
+    const userAccounts = await getUserAccounts(connection, wallet);
 
     const fromAccounts = userAccounts
         .filter(

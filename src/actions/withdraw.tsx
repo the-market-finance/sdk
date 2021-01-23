@@ -12,6 +12,7 @@ import {TokenAccount} from "../models";
 import {sendTransaction} from "../contexts/connection";
 import {cache, TokenAccountParser, MintParser} from "../contexts/accounts";
 import {fromLamports} from "../utils/utils";
+import {getUserAccounts} from "./common";
 
 
 
@@ -52,20 +53,8 @@ export const withdraw = async (
     const cleanupInstructions: TransactionInstruction[] = [];
 
     // fetch from
-    const accountsbyOwner = await connection.getTokenAccountsByOwner(wallet?.publicKey, {
-        programId: programIds().token,
-    });
-    const prepareUserAccounts = accountsbyOwner.value.map(r => TokenAccountParser(r.pubkey, r.account));
 
-    const selectUserAccounts = prepareUserAccounts
-        .filter(
-            (a) => a && a.info.owner.toBase58() === wallet.publicKey?.toBase58()
-        )
-        .map((a) => a as TokenAccount);
-
-    const userAccounts = selectUserAccounts.filter(
-        (a) => a !== undefined
-    ) as TokenAccount[];
+    const userAccounts = await getUserAccounts(connection, wallet)
 
     const fromAccounts = userAccounts
         .filter(

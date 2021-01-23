@@ -14,6 +14,7 @@ import {LendingObligation, TokenAccount} from "../models";
 import {cache, MintParser, ParsedAccount, TokenAccountParser} from "../contexts/accounts";
 import {sendTransaction} from "../contexts/connection";
 import {fromLamports, wadToLamports} from "../utils/utils";
+import {getUserAccounts} from "./common";
 
 
 
@@ -91,17 +92,8 @@ export const repay = async (
     const accountsbyOwner = await connection.getTokenAccountsByOwner(wallet?.publicKey, {
         programId: programIds().token,
     });
-    const prepareUserAccounts = accountsbyOwner.value.map(r => TokenAccountParser(r.pubkey, r.account));
 
-    const selectUserAccounts = prepareUserAccounts
-        .filter(
-            (a) => a && a.info.owner.toBase58() === wallet.publicKey?.toBase58()
-        )
-        .map((a) => a as TokenAccount);
-
-    const userAccounts = selectUserAccounts.filter(
-        (a) => a !== undefined
-    ) as TokenAccount[];
+    const userAccounts = await getUserAccounts(connection, wallet);
 
     // get obligationAccount
 

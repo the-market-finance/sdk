@@ -275,7 +275,7 @@ function tokenAccountFactory(pubKey: PublicKey, info: AccountInfo<Buffer>) {
     return details;
 }
 
-function wrapNativeAccount(
+export function wrapNativeAccount(
     pubkey: PublicKey,
     account?: AccountInfo<Buffer>
 ): TokenAccount | undefined {
