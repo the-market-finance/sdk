@@ -188,7 +188,7 @@ export const deposit = async (
             reserve.collateralMint,
             signers,
             undefined,
-            accountsByOwner.value ? accountsByOwner.value.map( a => TokenAccountParser(a.pubkey,a.account)) : undefined
+            userAccounts || undefined
         );
     } else {
         toAccount = createUninitializedAccount(
@@ -245,14 +245,16 @@ export const deposit = async (
             sendMessageCallback
         );
 
-        return sendMessageCallback({
+        console.log('callback')
+
+        sendMessageCallback({
             message: "Funds deposited.",
             type: "success",
             description: `Transaction - ${tx.slice(0,4)}...${tx.slice(-4)}`,
         });
-    } catch {
+    } catch(e) {
         // TODO:
-        throw new Error();
+        throw new Error(`into transaction error => ${e}`);
     }
 };
 

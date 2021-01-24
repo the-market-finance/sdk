@@ -89,9 +89,6 @@ export const repay = async (
 
 
     // fetch from
-    const accountsbyOwner = await connection.getTokenAccountsByOwner(wallet?.publicKey, {
-        programId: programIds().token,
-    });
 
     const userAccounts = await getUserAccounts(connection, wallet);
 
@@ -161,7 +158,7 @@ export const repay = async (
         withdrawReserve.info.collateralMint,
         signers,
         undefined,
-        accountsbyOwner.value ? accountsbyOwner.value.map(a => TokenAccountParser(a.pubkey, a.account)) : undefined
+        userAccounts || undefined
     );
 
     // create approval for transfer transactions

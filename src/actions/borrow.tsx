@@ -181,10 +181,6 @@ export const borrow = async (
 
     const from = fromAccounts[0];
 
-    const accountsByOwner = await connection.getTokenAccountsByOwner(wallet?.publicKey, {
-        programId: programIds().token,
-    });
-
     let signers: Account[] = [];
     let instructions: TransactionInstruction[] = [];
     let cleanupInstructions: TransactionInstruction[] = [];
@@ -270,7 +266,7 @@ export const borrow = async (
         borrowReserve.info.liquidityMint,
         signers,
         undefined,
-        accountsByOwner.value ? accountsByOwner.value.map(a => TokenAccountParser(a.pubkey, a.account)) : undefined
+        userAccounts || undefined
     );
 
     if (instructions.length > 0) {
@@ -423,6 +419,6 @@ export const borrow = async (
         });
     } catch (e) {
         // TODO:
-        throw new Error();
+        throw new Error(`into transaction error => ${e}`);
     }
 };

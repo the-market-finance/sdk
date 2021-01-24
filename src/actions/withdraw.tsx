@@ -43,9 +43,6 @@ export const withdraw = async (
         type: "warn",
     });
 
-    const accountsByOwner = await connection.getTokenAccountsByOwner(wallet?.publicKey, {
-        programId: programIds().token,
-    });
 
     // user from account
     const signers: Account[] = [];
@@ -128,7 +125,7 @@ export const withdraw = async (
         reserve.liquidityMint,
         signers,
         undefined,
-        accountsByOwner.value ? accountsByOwner.value.map( a => TokenAccountParser(a.pubkey,a.account)) : undefined
+        userAccounts || undefined
     );
 
     instructions.push(
@@ -158,7 +155,8 @@ export const withdraw = async (
             type: "success",
             description: `Transaction - ${tx.slice(0, 4)}...${tx.slice(-4)}`,
         });
-    } catch {
+    } catch (e){
         // TODO:
+        throw new Error(`into transaction error => ${e}`);
     }
 };
