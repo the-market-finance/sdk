@@ -18,7 +18,7 @@ import {
     ensureSplAccount,
     findOrCreateAccountByMint,
 } from "./account";
-import {TokenAccount} from "../models";
+import {approve, TokenAccount} from "../models";
 import {sendTransaction} from "../contexts/connection";
 import {formatPct, fromLamports, wadToLamports} from "../utils/utils";
 import {cache, MintParser, TokenAccountParser} from "../contexts/accounts";
@@ -121,6 +121,7 @@ export const deposit = async (
     if (!fromAccounts.length){throw Error('from account not found.')}
 
     const from = fromAccounts[0];
+    console.log('fromAccount_sdk',fromAccounts[0])
 
     // fetch from end
 
@@ -165,16 +166,26 @@ export const deposit = async (
     );
 
     // create approval for transfer transactions
-    instructions.push(
-        Token.createApproveInstruction(
-            TOKEN_PROGRAM_ID,
-            fromAccount,
-            authority,
-            wallet.publicKey,
-            [],
-            amountLamports
-        )
+    approve(
+        instructions,
+        cleanupInstructions,
+        fromAccount,
+        authority,
+        wallet.publicKey,
+        amountLamports
     );
+
+    // // create approval for transfer transactions
+    // instructions.push(
+    //     Token.createApproveInstruction(
+    //         TOKEN_PROGRAM_ID,
+    //         fromAccount,
+    //         authority,
+    //         wallet.publicKey,
+    //         [],
+    //         amountLamports
+    //     )
+    // );
 
     let toAccount: PublicKey;
     if (isInitalized) {

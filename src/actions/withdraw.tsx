@@ -8,7 +8,7 @@ import {LendingReserve, reserveMarketCap, withdrawInstruction} from "../models/l
 import {AccountLayout, Token} from "@solana/spl-token";
 import {LENDING_PROGRAM_ID, programIds, TOKEN_PROGRAM_ID} from "../constants";
 import {findOrCreateAccountByMint} from "./account";
-import {TokenAccount} from "../models";
+import {approve, TokenAccount} from "../models";
 import {sendTransaction} from "../contexts/connection";
 import {cache, TokenAccountParser, MintParser} from "../contexts/accounts";
 import {fromLamports} from "../utils/utils";
@@ -49,9 +49,25 @@ export const withdraw = async (
     const instructions: TransactionInstruction[] = [];
     const cleanupInstructions: TransactionInstruction[] = [];
 
-    // fetch from
+    const accountsByOwner = await connection.getTokenAccountsByOwner(wallet?.publicKey, {
+        programId: programIds().token,
+    });
 
-    const userAccounts = await getUserAccounts(connection, wallet)
+    // fetch from
+    const prepareUserAccounts = accountsByOwner.value.map(r => TokenAccountParser(r.pubkey, r.account));
+
+    const selectUserAccounts = prepareUserAccounts
+        .filter(
+            (a) => a && a.info.owner.toBase58() === wallet.publicKey?.toBase58()
+        )
+        .map((a) => a as TokenAccount);
+
+
+    const userAccounts = selectUserAccounts.filter(
+        (a) => a !== undefined
+    ) as TokenAccount[];
+
+    // const userAccounts = await getUserAccounts(connection, wallet)
 
     const fromAccounts = userAccounts
         .filter(
@@ -60,11 +76,13 @@ export const withdraw = async (
         )
         .sort((a, b) => b.info.amount.sub(a.info.amount).toNumber());
 
+    console.log('fromAccounts', fromAccounts)
+
 
     if (!fromAccounts.length){throw Error('from account not found.')}
 
     const from = fromAccounts[0];
-
+    console.log('fromAccount(from)',fromAccounts[0])
     // fetch from end
 
     //get Lampots treatmend value
@@ -104,16 +122,27 @@ export const withdraw = async (
     const fromAccount = from.pubkey;
 
     // create approval for transfer transactions
-    instructions.push(
-        Token.createApproveInstruction(
-            TOKEN_PROGRAM_ID,
-            fromAccount,
-            authority,
-            wallet.publicKey,
-            [],
-            amountLamports
-        )
+    approve(
+        instructions,
+        cleanupInstructions,
+        fromAccount,
+        authority,
+        wallet.publicKey,
+        amountLamports
     );
+
+
+    // // create approval for transfer transactions
+    // instructions.push(
+    //     Token.createApproveInstruction(
+    //         TOKEN_PROGRAM_ID,
+    //         fromAccount,
+    //         authority,
+    //         wallet.publicKey,
+    //         [],
+    //         amountLamports
+    //     )
+    // );
 
     // get destination account
     const toAccount = await findOrCreateAccountByMint(
@@ -125,7 +154,7 @@ export const withdraw = async (
         reserve.liquidityMint,
         signers,
         undefined,
-        userAccounts || undefined
+        accountsByOwner.value ? accountsByOwner.value.map(a => TokenAccountParser(a.pubkey, a.account)) : undefined || undefined
     );
 
     instructions.push(
@@ -139,6 +168,10 @@ export const withdraw = async (
             authority
         )
     );
+
+    console.log('from', from)
+    console.log('instructions.concat(cleanupInstructions),',instructions.concat(cleanupInstructions))
+    console.log('signers', signers)
 
     try {
         let tx = await sendTransaction(
