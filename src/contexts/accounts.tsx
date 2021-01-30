@@ -234,6 +234,7 @@ export const getMultipleAccounts = async (
     keys: string[],
     commitment: string
 ) => {
+
   const result = await Promise.all(
       chunks(keys, 99).map((chunk) =>
           getMultipleAccountsCore(connection, chunk, commitment)

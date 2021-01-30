@@ -3,21 +3,23 @@ import { fromLamports, STABLE_COINS } from "../utils/utils";
 import { cache, getMultipleAccounts, ParsedAccount } from "./accounts";
 import { Market, Orderbook, TOKEN_MINTS } from "@project-serum/serum";
 import { AccountInfo, Connection, PublicKey } from "@solana/web3.js";
-import { LendingMarket, LendingReserve } from "../models";
+import {LendingMarket, LendingReserve, TokenAccount} from "../models";
 
 
 export const simulateMarketOrderFill = (
   amount: number,
   reserve: LendingReserve,
-  dex: PublicKey
+  dex: PublicKey,
 ) => {
   const liquidityMint = cache.get(reserve.liquidityMint);
   const collateralMint = cache.get(reserve.collateralMint);
+
   if (!liquidityMint || !collateralMint) {
     return 0.0;
   }
 
   const marketInfo = cache.get(dex);
+
   if (!marketInfo) {
     return 0.0;
   }
@@ -31,6 +33,7 @@ export const simulateMarketOrderFill = (
   const lendingMarket = cache.get(reserve.lendingMarket) as ParsedAccount<
     LendingMarket
   >;
+
 
   const dexMarket = new Market(
     decodedMarket,
@@ -127,7 +130,7 @@ const getMidPrice = (marketAddress?: string, mintAddress?: string) => {
   return 0;
 };
 
-const refreshAccounts = async (connection: Connection, keys: string[]) => {
+export const refreshAccounts = async (connection: Connection, keys: string[]) => {
   if (keys.length === 0) {
     return [];
   }
