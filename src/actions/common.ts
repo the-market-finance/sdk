@@ -7,9 +7,12 @@ import {
     LendingReserveParser
 } from "../models/lending";
 import {Connection, PublicKey} from "@solana/web3.js";
-import {ParsedAccount, TokenAccountParser} from "../contexts/accounts";
+import {cache, getMultipleAccounts, ParsedAccount, TokenAccountParser} from "../contexts/accounts";
 import {TokenAccount} from "../models";
 import {wrapNativeAccount} from "../utils/accounts";
+import {DexMarketParser} from "../models/dex";
+import {refreshAccounts} from "../contexts/market";
+import {SerumMarket} from "./enriched";
 
 export const getUserAccounts = async (connection: Connection, wallet: any) => {
     const accountsbyOwner = await connection.getTokenAccountsByOwner(wallet?.publicKey, {
@@ -139,5 +142,68 @@ export const getUserObligations = async (connection: Connection, wallet: any, ad
     return !id ? userObligations : userObligations.filter(userObl => userObl.obligation.pubkey.toBase58() === id)
 
 
+}
+
+
+export const initalQuery = async (connection:Connection,marketByMint:Map<string, SerumMarket>) => {
+    const reverseSerumMarketCache = new Map<string, string>();
+    [...marketByMint.keys()].forEach((mint) => {
+        const m = marketByMint.get(mint);
+        if (m) {
+            reverseSerumMarketCache.set(m.marketInfo.address.toBase58(), mint);
+        }
+    });
+
+    const allMarkets = [...marketByMint.values()].map((m) => {
+        return m.marketInfo.address.toBase58();
+    });
+
+    await getMultipleAccounts(
+        connection,
+        // only query for markets that are not in cahce
+        allMarkets,
+        "single"
+    ).then(({keys, array}) => {
+        allMarkets.forEach(() => {
+        });
+
+        return array.map((item, index) => {
+            const marketAddress = keys[index];
+            cache.add(new PublicKey(marketAddress), item);
+            const mintAddress = reverseSerumMarketCache.get(marketAddress);
+            if (mintAddress) {
+                const market = marketByMint.get(mintAddress);
+
+                if (market) {
+                    const id = market.marketInfo.address;
+                    cache.add(id, item, DexMarketParser);
+                }
+            }
+
+            return item;
+        });
+    })
+    const toQuery = new Set<string>();
+    allMarkets.forEach((m) => {
+        const market = cache.get(m);
+        if (!market) {
+            return;
+        }
+
+        const decoded = market;
+
+        if (!cache.get(decoded.info.baseMint)) {
+            toQuery.add(decoded.info.baseMint.toBase58());
+        }
+
+        if (!cache.get(decoded.info.baseMint)) {
+            toQuery.add(decoded.info.quoteMint.toBase58());
+        }
+
+        toQuery.add(decoded.info.bids.toBase58());
+        toQuery.add(decoded.info.asks.toBase58());
+    });
+
+    await refreshAccounts(connection, [...toQuery.keys()]);
 }
 

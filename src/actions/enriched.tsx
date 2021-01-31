@@ -20,7 +20,7 @@ import {fromLamports, getTokenName, KnownToken, KnownTokenMap, STABLE_COINS, wad
 import {DexMarketParser} from "../models/dex";
 import {localTokens} from "../config/tokens";
 import {refreshAccounts, simulateMarketOrderFill} from "../contexts/market";
-import {getUserObligations} from "./common";
+import {getUserObligations, initalQuery} from "./common";
 
 interface EnrichedLendingObligationInfo extends LendingObligation {
     ltv: number;
@@ -60,7 +60,7 @@ const processAccount = (item:any) => {
     }
 }
 
-const queryLendingAccounts = async (connection:Connection, programAccounts:any[]) => {
+export const queryLendingAccounts = async (connection:Connection, programAccounts:any[]) => {
 
     const accounts = programAccounts
         .map(processAccount)
@@ -113,7 +113,7 @@ const queryLendingAccounts = async (connection:Connection, programAccounts:any[]
 
 
 
-interface SerumMarket {
+export interface SerumMarket {
     marketInfo: {
         address: PublicKey;
         name: string;
@@ -263,69 +263,7 @@ export const getEnrichedLendingObligations = async (connection: Connection, wall
 
     await queryLendingAccounts(connection, programAccounts)
 
-    const initalQuery = async () => {
-        const reverseSerumMarketCache = new Map<string, string>();
-        [...marketByMint.keys()].forEach((mint) => {
-            const m = marketByMint.get(mint);
-            if (m) {
-                reverseSerumMarketCache.set(m.marketInfo.address.toBase58(), mint);
-            }
-        });
-
-        const allMarkets = [...marketByMint.values()].map((m) => {
-            return m.marketInfo.address.toBase58();
-        });
-
-        await getMultipleAccounts(
-            connection,
-            // only query for markets that are not in cahce
-            allMarkets,
-            "single"
-        ).then(({keys, array}) => {
-            allMarkets.forEach(() => {
-            });
-
-            return array.map((item, index) => {
-                const marketAddress = keys[index];
-                cache.add(new PublicKey(marketAddress), item);
-                const mintAddress = reverseSerumMarketCache.get(marketAddress);
-                if (mintAddress) {
-                    const market = marketByMint.get(mintAddress);
-
-                    if (market) {
-                        const id = market.marketInfo.address;
-                        cache.add(id, item, DexMarketParser);
-                    }
-                }
-
-                return item;
-            });
-        })
-        const toQuery = new Set<string>();
-        allMarkets.forEach((m) => {
-            const market = cache.get(m);
-            if (!market) {
-                return;
-            }
-
-            const decoded = market;
-
-            if (!cache.get(decoded.info.baseMint)) {
-                toQuery.add(decoded.info.baseMint.toBase58());
-            }
-
-            if (!cache.get(decoded.info.baseMint)) {
-                toQuery.add(decoded.info.quoteMint.toBase58());
-            }
-
-            toQuery.add(decoded.info.bids.toBase58());
-            toQuery.add(decoded.info.asks.toBase58());
-        });
-
-        await refreshAccounts(connection, [...toQuery.keys()]);
-    }
-
-    await initalQuery();
+    await initalQuery(connection, marketByMint);
 
     const tokenMapFetch = async () => {
         return await new Promise((resolve, reject) => {
