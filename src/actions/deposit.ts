@@ -88,11 +88,6 @@ export const deposit = async (
 ) => {
     const sendMessageCallback = notifyCallback ? notifyCallback : (message:object) => console.log(message)
 
-    const accountsByOwner = await connection.getTokenAccountsByOwner(wallet?.publicKey, {
-        programId: programIds().token,
-    });
-
-
     sendMessageCallback({
         message: "Depositing funds...",
         description: "Please review transactions to approve.",

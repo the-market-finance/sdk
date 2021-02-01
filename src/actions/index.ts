@@ -5,4 +5,4 @@ export {withdraw} from "./withdraw";
 export {liquidate} from "./liquidate";
 export {getReserveAccounts, getUserObligations, getUserDeposit} from "./common";
 export {getEnrichedLendingObligations} from './enriched';
-export {getPools} from './pool'
+export {getPools, calculateDependent} from './pool'

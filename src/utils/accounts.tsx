@@ -252,6 +252,7 @@ export const cache = {
 export const getCachedAccount = (
     predicate: (account: TokenAccount) => boolean
 ) => {
+    console.log('accountsCache-sdk',accountsCache)
     for (const account of accountsCache.values()) {
         if (predicate(account)) {
             return account as TokenAccount;

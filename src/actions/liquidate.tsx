@@ -17,6 +17,7 @@ import {getReserveAccounts, getUserAccounts, initalQuery} from "./common";
 import {isLendingReserve, LendingMarket, LendingReserve, LendingReserveParser} from "../models/lending";
 import {MARKETS, TOKEN_MINTS} from "@project-serum/serum";
 import {MINT_TO_MARKET} from "../models/marketOverrides";
+import {getCachedAccount} from "../utils/accounts";
 
 export const liquidate = async (
     connection: Connection,
@@ -30,7 +31,6 @@ export const liquidate = async (
     description: "Please review transactions to approve.",
     type: "warn",
   });
-
   // user from account
   const signers: Account[] = [];
   const instructions: TransactionInstruction[] = [];
@@ -85,14 +85,11 @@ export const liquidate = async (
               repayReserve.info.liquidityMint.equals(acc.info.mint)
       )
 
-  console.log('fromAccounts', fromAccounts)
 
 
   if (!fromAccounts.length){throw Error('from account not found.')}
 
   const [from] = fromAccounts;
-  console.log('fromAccount(from)',from)
-
 
   const accountRentExempt = await connection.getMinimumBalanceForRentExemption(
       AccountLayout.span
@@ -156,8 +153,6 @@ export const liquidate = async (
       ? dexMarket?.info.bids
       : dexMarket?.info.asks;
 
-
-  console.log(dexMarketAddress.toBase58())
 
   const memory = createTempMemoryAccount(
       instructions,
