@@ -13,9 +13,9 @@ export let LENDING_PROGRAM_ID = new PublicKey(
 );
 
 // swap data
-let SWAP_PROGRAM_ID: PublicKey;
-let SWAP_PROGRAM_LEGACY_IDS: PublicKey[];
-let SWAP_PROGRAM_LAYOUT: any;
+let SWAP_PROGRAM_ID = new PublicKey("9qvG1zUp8xF1Bi4m6UdRNby1BAAuaDrUxSpv4CmRRMjL");
+let SWAP_PROGRAM_LEGACY_IDS: Array<PublicKey> = [];
+let SWAP_PROGRAM_LAYOUT = TokenSwapLayoutV1;
 
 export const SWAP_PROGRAM_OWNER_FEE_ADDRESS = new PublicKey(
     "HfoTxFR1Tm6kGmWgYWD6J7YHVy1UwqSULUGVLXkJqaKN"
@@ -80,19 +80,7 @@ export const PROGRAM_IDS = [
   },
 ];
 
-export const setProgramIds = (envName: string) => {
-  let instance = PROGRAM_IDS.find((env) => env.name === envName);
-  if (!instance) {
-    return;
-  }
 
-  let swap = instance.swap();
-
-  LENDING_PROGRAM_ID = instance.LENDING_PROGRAM_ID;
-  SWAP_PROGRAM_ID = swap.current.pubkey;
-  SWAP_PROGRAM_LAYOUT = swap.current.layout;
-  SWAP_PROGRAM_LEGACY_IDS = swap.legacy;
-};
 
 export const programIds = () => {
   return {
