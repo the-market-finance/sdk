@@ -10,8 +10,7 @@ import {Account, Connection, PublicKey, SystemProgram, TransactionInstruction} f
 import {getUserAccounts} from "./common";
 import {programIds, SWAP_HOST_FEE_ADDRESS, WRAPPED_SOL_MINT} from "../constants";
 import {swapInstruction} from "../models/tokenSwap";
-import {precacheUserTokenAccounts} from "../contexts/accounts";
-import {getPoolForBasket, queryPools} from "./pool";
+import {calculateDependent, getPoolForBasket, queryPools} from "./pool";
 
 const convertAmount = (amount: string, mint?: MintInfo) => {
     return parseFloat(amount) * Math.pow(10, mint?.decimals || 0);
@@ -21,8 +20,7 @@ const convertAmount = (amount: string, mint?: MintInfo) => {
 export interface SwapArgs {
     mintAddressA: string,
     amountA: string,
-    mintAddressB: string,
-    amountB?: string
+    mintAddressB: string
 }
 
 export const getAccountByMint = (userAccounts: Array<TokenAccount>, swapArgs: SwapArgs) => {
@@ -47,8 +45,7 @@ export const getAccountByMint = (userAccounts: Array<TokenAccount>, swapArgs: Sw
  * interface SwapArgs {
  *      mintAddressA: string,
  *      amountA: string,
- *      mintAddressB: string,
- *      amountB: string
+ *      mintAddressB: string
  * }
  * @param swapArgs: interface SwapArgs
  *
@@ -61,11 +58,14 @@ export const swap = async (connection: Connection, wallet: any, swapArgs: SwapAr
 
     const sendMessageCallback = notifyCallback ? notifyCallback : (message:object) => console.log(message)
     const SLIPPAGE = slippage || 0.25;
-    const {mintAddressA, mintAddressB, amountA, amountB} = swapArgs;
+    const {mintAddressA, mintAddressB, amountA} = swapArgs;
 
-    if (!mintAddressA || !mintAddressB || !amountA || !amountB) {
+    if (!mintAddressA || !mintAddressB || !amountA) {
         throw new Error('mintAddressA,mintAddressB or amountA,amountB not found in swapArgs')
     }
+    // calculate swap amountB
+    const amountB =  await calculateDependent(connection, swapArgs);
+
     //fetch pools
     const mixPool = await Promise.all([
         queryPools(programIds().swap, connection),

@@ -264,8 +264,7 @@ export const liquidate = async (
  * interface SwapArgs {
  *      mintAddressA: string,
  *      amountA: string,
- *      mintAddressB: string,
- *      amountB: string 
+ *      mintAddressB: string
  * }
  * @param swapArgs: interface SwapArgs
  * @param notifyCallback?: (message:object) => void | any (e.g. the notify function from antd)
@@ -412,8 +411,7 @@ const swapArgs = {
 }
 
 async function swap_example() {
-    const amountB = await calculateDependent(connection, swapArgs);
-    await swap(connection, wallet, {...swapArgs, amountB}, callback);
+    await swap(connection, wallet, swapArgs, callback);
 };
 
 
