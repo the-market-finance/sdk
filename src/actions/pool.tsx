@@ -11,7 +11,22 @@ import {programIds} from "../constants";
 import {calculateDependentAmount, PoolOperation} from "../utils/pools";
 import {SwapArgs} from "./swap";
 
-export const calculateDependent = async (connection: Connection, swapArgs: SwapArgs) => {
+
+/**
+ * information request calculates dependence max amount tokens "B" on amount tokens "A" for swap
+ *
+ * @param connection: Connection
+ *
+ * interface SwapArgs {
+ *      mintAddressA: string,
+ *      amountA: string,
+ *      mintAddressB: string
+ * }
+ * @param swapArgs: interface SwapArgs
+ * @return Promise<string> (amountB: string)
+ * @async
+ */
+export const calculateDependent = async (connection: Connection, swapArgs: SwapArgs):Promise<string> => {
     let response: string = '';
     const {mintAddressA, mintAddressB, amountA} = swapArgs;
     if (!mintAddressA || !mintAddressB || !amountA) {

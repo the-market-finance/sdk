@@ -37,12 +37,12 @@ import {getUserAccounts} from "./common";
 
 
 /**
- * информационный запрос, выводящий сколько можно занять в долг
+ * information request displaying how much you can borrow
  *
  * @param connection: Connection
- * @param wallet:Wallet
- * @param publicKey:string | PublicKey (адресс токена)
- * @return  Promise<string>
+ * @param wallet: Wallet
+ * @param publicKey: string | PublicKey (token address)
+ * @return Promise<string>
  * @async
  */
 export const availableForBorrow = async (connection: Connection, wallet: any, publicKey: string | PublicKey): Promise<string> => {
@@ -93,12 +93,24 @@ export const availableForBorrow = async (connection: Connection, wallet: any, pu
     return formatNumber.format(availableForBorrow)
 }
 
-
+/**
+ * information request displaying the current rate on the APY borrow
+ *
+ * @param reserve: LendingReserve (can be obtained via getReserveAccounts)
+ * @return string
+ */
 export const borrowApyVal = (reserve: LendingReserve): string => {
     return formatPct.format(calculateBorrowAPY(reserve))
 };
 
-
+/**
+ * information request displaying the current rate on the APY borrow
+ *
+ * @param connection: Connection
+ * @param publicKey: string | PublicKey (token address)
+ * @return Promise<string>
+ * @async
+ */
 export const getBorrowApy = async (connection: Connection, publicKey: string | PublicKey): Promise<string> => {
     const pk = typeof publicKey === "string" ? publicKey : publicKey?.toBase58();
     const programAccounts = await connection.getProgramAccounts(
@@ -119,15 +131,15 @@ export const getBorrowApy = async (connection: Connection, publicKey: string | P
 }
 
 /**
- * создание заявки на кредит (borrow)
+ * creating a borrow (borrow)
  *
- * @param connection:Connection
- * @param wallet:Wallet
- * @param amount:number  (количество займа как Float)
- * @param collateralAddress: PublicKey | string (адресс или PublicKey токена для залога)
- * @param borrowReserve: ParsedAccount<LendingReserve> (можно получить через getReserveAccounts(connection, address)[0]))
- * @param notifyCallback?: (message:object) => void | any (например функция notify из antd)
- * @return  void
+ * @param connection: Connection
+ * @param wallet: Wallet
+ * @param amount: number (borrow amount as Float)
+ * @param collateralAddress: PublicKey | string (address or PublicKey of the token for collateral)
+ * @param borrowReserve: ParsedAccount<LendingReserve> (can be obtained through getReserveAccounts(connection, address)[0]))
+ * @param notifyCallback?: (message:object) => void | any (e.g. the notify function from antd)
+ * @return void
  * @async
  */
 export const borrow = async (

@@ -137,7 +137,16 @@ export interface SerumMarket {
 
     midPrice?: (mint?: PublicKey) => number;
 }
-
+/**
+ * Get obligations with a user account, for operations (liquidate)
+ *
+ * @param connection: Connection
+ * @param wallet: Wallet
+ * (optional, passed to get one account at this address, an array of 1 elements)
+ * @param address?: string | PublicKey
+ * @return Promise<EnrichedLendingObligation[]>
+ * @async
+ */
 export const getEnrichedLendingObligations = async (connection: Connection, wallet: any, address?: string | PublicKey) => {
 
     const id = address ? typeof address === "string" ? address : address?.toBase58() : undefined;

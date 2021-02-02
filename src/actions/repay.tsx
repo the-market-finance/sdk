@@ -20,15 +20,15 @@ import {getUserAccounts} from "./common";
 
 
 /**
- * погашение кредита (repay)
+ * repayment of the borrow (repay)
  *
- * @param value:string  (количество)
- * @param obligationAddress:PublicKey | string (адресс токена погашение кредита)
- * @param collateralAddress: PublicKey | string (адресс токена залога)
- * @param connection:Connection
- * @param wallet:Wallet
- * @param notifyCallback?: (message:object) => void | any (например функция notify из antd)
- * @return  void
+ * @param value: string (amount)
+ * @param obligationAddress: PublicKey | string (token address borrow repayment)
+ * @param collateralAddress: PublicKey | string (collateral token address)
+ * @param connection: Connection
+ * @param wallet: Wallet
+ * @param notifyCallback?: (message:object) => void | any (e.g. the notify function from antd)
+ * @return void
  * @async
  */
 export const repay = async (

@@ -17,15 +17,15 @@ import {getUserAccounts} from "./common";
 
 
 /**
- * вывод средств с депозита (withdraw)
+ * withdrawal of funds from the deposit (withdraw)
  *
- * @param value:string  (количество)
- * @param reserve:LendingReserve (можно получить через getReserveAccounts(connection, address)[0].info)
- * @param reserveAddress:PublicKey (можно получить через getReserveAccounts(connection, address)[0].pubkey)
- * @param connection:Connection
- * @param wallet:Wallet
- * @param notifyCallback?: (message:object) => void | any (например функция notify из antd)
- * @return  void
+ * @param value: string  (amount)
+ * @param reserve: LendingReserve (can be obtained through getReserveAccounts(connection, address)[0].info)
+ * @param reserveAddress: PublicKey (can be obtained through getReserveAccounts(connection, address)[0].pubkey)
+ * @param connection: Connection
+ * @param wallet: Wallet
+ * @param notifyCallback?: (message:object) => void | any (e.g. the notify function from antd)
+ * @return void
  * @async
  */
 export const withdraw = async (
@@ -75,8 +75,6 @@ export const withdraw = async (
                 reserve.collateralMint.equals(acc.info.mint)
         )
         .sort((a, b) => b.info.amount.sub(a.info.amount).toNumber());
-
-    console.log('fromAccounts', fromAccounts)
 
 
     if (!fromAccounts.length){throw Error('from account not found.')}
@@ -169,9 +167,6 @@ export const withdraw = async (
         )
     );
 
-    console.log('from', from)
-    console.log('instructions.concat(cleanupInstructions),',instructions.concat(cleanupInstructions))
-    console.log('signers', signers)
 
     try {
         let tx = await sendTransaction(

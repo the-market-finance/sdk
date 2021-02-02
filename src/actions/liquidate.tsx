@@ -17,8 +17,19 @@ import {getReserveAccounts, getUserAccounts, initalQuery} from "./common";
 import {isLendingReserve, LendingMarket, LendingReserve, LendingReserveParser} from "../models/lending";
 import {MARKETS, TOKEN_MINTS} from "@project-serum/serum";
 import {MINT_TO_MARKET} from "../models/marketOverrides";
-import {getCachedAccount} from "../utils/accounts";
 
+
+
+/**
+ * liquidate user obligation
+ *
+ * @param connection: Connection
+ * @param wallet: Wallet
+ * @param obligation: EnrichedLendingObligation
+ * @param notifyCallback?: (message:object) => void | any (e.g. the notify function from antd)
+ * @return void
+ * @async
+ */
 export const liquidate = async (
     connection: Connection,
     wallet: any,

@@ -38,7 +38,25 @@ export const getAccountByMint = (userAccounts: Array<TokenAccount>, swapArgs: Sw
     return [userAccounts[indexA] || undefined, userAccounts[indexB] || undefined];
 };
 
-
+/**
+ * swap of tokens
+ *
+ * @param connection: Connection
+ * @param wallet: Wallet
+ *
+ * interface SwapArgs {
+ *      mintAddressA: string,
+ *      amountA: string,
+ *      mintAddressB: string,
+ *      amountB: string
+ * }
+ * @param swapArgs: interface SwapArgs
+ *
+ * @param notifyCallback?: (message:object) => void | any (e.g. the notify function from antd)
+ * @param slippage?: number
+ * @return void
+ * @async
+ */
 export const swap = async (connection: Connection, wallet: any, swapArgs: SwapArgs,notifyCallback?: (message:object) => void | any, slippage?: number) => {
 
     const sendMessageCallback = notifyCallback ? notifyCallback : (message:object) => console.log(message)

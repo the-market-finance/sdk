@@ -38,12 +38,12 @@ export const getUserAccounts = async (connection: Connection, wallet: any) => {
 
 
 /**
- * Получение аккаунтов по лендингу для операций deposit, borrow.
+ * Get parsed tokens for operations (deposit, borrow)
  *
- * @param connection:Connection
- * (необязательный, передаётся для получение одного аккаунта по этому адресу, тоесть массив из 1 елемента)
+ * @param connection: Connection
+ * (optional, passed to get one account at this address, an array of 1 elements)
  * @param address?: string | PublicKey
- * @return  Promise<ParsedAccount<LendingReserve>[]>
+ * @return Promise<ParsedAccount<LendingReserve>[]>
  * @async
  */
 export const getReserveAccounts = async (connection: Connection, address?: string | PublicKey): Promise<ParsedAccount<LendingReserve>[]> => {
@@ -61,13 +61,13 @@ export const getReserveAccounts = async (connection: Connection, address?: strin
     return !id ? lendingReserveAccounts : lendingReserveAccounts.filter(acc => acc?.pubkey.toBase58() === id)
 }
 /**
- * Получение распарсенных токенов депозитов по лендингу, для операций (deposit, withdraw)
+ * Get parsed tokens for operations (deposit, withdraw)
  *
- * @param connection:Connection
+ * @param connection: Connection
  * @param wallet: Wallet
- * (необязательный, передаётся для получение одного аккаунта по этому адресу, тоесть массив из 1 елемента)
+ * (optional, passed to get one account at this address, an array of 1 elements)
  * @param address?: string | PublicKey
- * @return  Promise<ParsedAccount<TokenAccount>[]>
+ * @return Promise<ParsedAccount<TokenAccount>[]>
  * @async
  */
 export const getUserDeposit = async (connection: Connection, wallet: any, address?: string | PublicKey) => {
@@ -96,13 +96,13 @@ export const getUserDeposit = async (connection: Connection, wallet: any, addres
     return !id ? userDepositAccounts : await getReserveAccounts(connection, id);
 }
 /**
- * Получение облигаций с аккаунтом пользователя , для операций repay
+ * Get obligations with a user account, for operations (borrow repayment)
  *
- * @param connection:Connection
+ * @param connection: Connection
  * @param wallet: Wallet
- * (необязательный, передаётся для получение одного аккаунта по этому адрессу, тоесть массив из 1 елемента)
+ * (optional, passed to get one account at this address, an array of 1 elements)
  * @param address?: string | PublicKey
- * @return  Promise<{obligation:any, userAccounts:any}[]>
+ * @return Promise<{obligation:any, userAccounts:any}[]>
  * @async
  */
 export const getUserObligations = async (connection: Connection, wallet: any, address?: string | PublicKey) => {

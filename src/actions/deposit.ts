@@ -25,10 +25,10 @@ import {cache, MintParser, TokenAccountParser} from "../contexts/accounts";
 import {getUserAccounts} from "./common";
 
 /**
- * информационный запрос, выводящий текущую ставку по депозиту APY
+ * information request displaying the current rate on the APY deposit
  *
- * @param reserve:LendingReserve (можно получить через getReserveAccounts)
- * @return  string
+ * @param reserve: LendingReserve (can be obtained via getReserveAccounts)
+ * @return string
  */
 export const depositApyVal = (reserve: LendingReserve):string => {
     const totalBorrows = wadToLamports(reserve.borrowedLiquidityWad).toNumber();
@@ -39,11 +39,11 @@ export const depositApyVal = (reserve: LendingReserve):string => {
     return formatPct.format(currentUtilization * borrowAPY);
 };
 /**
- * информационный запрос, выводящий текущую ставку по депозиту APY
+ * information request displaying the current rate on the APY deposit
  *
- * @param connection:Connection
- * @param publicKey: string | PublicKey
- * @return  Promise<string>
+ * @param connection: Connection
+ * @param publicKey: string | PublicKey (token address)
+ * @return Promise<string>
  * @async
  */
 export const getDepositApy = async (connection: Connection, publicKey: string | PublicKey):Promise<string> => {
@@ -67,15 +67,15 @@ export const getDepositApy = async (connection: Connection, publicKey: string | 
 
 
 /**
- * создание депозита (deposit)
+ * creation of a deposit (deposit)
  *
- * @param value:string
- * @param reserve:LendingReserve (можно получить через getReserveAccounts(connection, address)[0].info)
- * @param reserveAddress:PublicKey (можно получить через getReserveAccounts(connection, address)[0].pubkey)
+ * @param value: string
+ * @param reserve: LendingReserve (can be obtained through getReserveAccounts(connection, address)[0].info)
+ * @param reserveAddress: PublicKey (can be obtained through getReserveAccounts(connection, address)[0].pubkey)
  * @param connection: Connection
- * @param wallet:Wallet
- * @param notifyCallback?: (message:object) => void | any (например функция notify из antd)
- * @return  void
+ * @param wallet: Wallet
+ * @param notifyCallback?: (message:object) => void | any (e.g. the notify function from antd)
+ * @return void
  * @async
  */
 export const deposit = async (
@@ -116,7 +116,6 @@ export const deposit = async (
     if (!fromAccounts.length){throw Error('from account not found.')}
 
     const from = fromAccounts[0];
-    console.log('fromAccount_sdk',fromAccounts[0])
 
     // fetch from end
 
@@ -238,8 +237,6 @@ export const deposit = async (
             )
         );
     }
-    console.log('signers',signers)
-    console.log('instructions.concat(cleanupInstructions)',instructions.concat(cleanupInstructions))
 
     try {
         let tx = await sendTransaction(
