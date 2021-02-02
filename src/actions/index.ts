@@ -6,3 +6,4 @@ export {liquidate} from "./liquidate";
 export {getReserveAccounts, getUserObligations, getUserDeposit} from "./common";
 export {getEnrichedLendingObligations} from './enriched';
 export {getPools, calculateDependent} from './pool'
+export {swap} from "./swap";

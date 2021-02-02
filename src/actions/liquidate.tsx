@@ -27,7 +27,7 @@ export const liquidate = async (
 ) => {
   const sendMessageCallback = notifyCallback ? notifyCallback : (message: object) => console.log(message)
   sendMessageCallback({
-    message: "Repaing funds...",
+    message: "Repaying funds...",
     description: "Please review transactions to approve.",
     type: "warn",
   });

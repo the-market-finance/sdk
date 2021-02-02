@@ -5,18 +5,32 @@ import {
     TokenSwapLayoutLegacyV0 as TokenSwapLayoutV0,
     TokenSwapLayoutV1
 } from "../models/tokenSwap";
-
 import {AccountLayout, MintLayout} from "@solana/spl-token";
-import {cache, getCachedAccount, getMultipleAccounts} from "../utils/accounts";
+import {cache, getMultipleAccounts} from "../utils/accounts";
 import {programIds} from "../constants";
-import {precacheUserTokenAccounts} from "../contexts/accounts";
-
 import {calculateDependentAmount, PoolOperation} from "../utils/pools";
+import {SwapArgs} from "./swap";
 
-export const calculateDependent = async (connection: Connection, pool: PoolInfo, mintAddressA: string, amountA: string) => {
+export const calculateDependent = async (connection: Connection, swapArgs: SwapArgs) => {
     let response: string = '';
+    const {mintAddressA, mintAddressB, amountA} = swapArgs;
+    if (!mintAddressA || !mintAddressB || !amountA) {
+        throw new Error('mintAddressA, mintAddressB or amountA not found in swapArgs')
+    }
+    //fetch pools
+    const mixPool = await Promise.all([
+        queryPools(programIds().swap, connection),
+        ...programIds().swap_legacy.map((leg) => queryPools(leg, connection, true)),
+    ])
+    const AllPools = mixPool.flat();
+    const pool = await getPoolForBasket(connection, [mintAddressA, mintAddressB], AllPools)
+    // end fetch pool
+    if (!pool) {
+        response = `Pool doesn't exist`;
+        return response;
+    }
+
     if (pool && mintAddressA) {
-        let setDependent;
         let amount;
         let independent;
 
@@ -42,7 +56,6 @@ export const calculateDependent = async (connection: Connection, pool: PoolInfo,
 }
 
 
-
 const toPoolInfo = (item: any, program: PublicKey) => {
     const mint = new PublicKey(item.data.tokenPool);
     return {
@@ -66,7 +79,7 @@ const getHoldings = (connection: Connection, accounts: string[]) => {
     );
 };
 
-export const getPoolForBasket = async (connection:Connection, mints: (string | undefined)[], allPools:PoolInfo[]) => {
+export const getPoolForBasket = async (connection: Connection, mints: (string | undefined)[], allPools: PoolInfo[]) => {
     const sortedMints = [...mints].sort(); // eslint-disable-line
     const pools = await (async () => {
         let matchingPool = allPools
@@ -95,11 +108,11 @@ export const getPoolForBasket = async (connection:Connection, mints: (string | u
 }
 
 
-export const getPools = async (connection:Connection, mints: (string | undefined)[]) => {
+export const getPools = async (connection: Connection, mints: (string | undefined)[]) => {
     const mixPool = await Promise.all([
-            queryPools(programIds().swap, connection),
-            ...programIds().swap_legacy.map((leg) => queryPools(leg, connection,true)),
-        ])
+        queryPools(programIds().swap, connection),
+        ...programIds().swap_legacy.map((leg) => queryPools(leg, connection, true)),
+    ])
 
     const AllPools = mixPool.flat();
 
@@ -107,7 +120,7 @@ export const getPools = async (connection:Connection, mints: (string | undefined
 }
 
 
-export const queryPools = async (swapId: PublicKey, connection:Connection, isLegacy = false) => {
+export const queryPools = async (swapId: PublicKey, connection: Connection, isLegacy = false) => {
     let poolsArray: PoolInfo[] = [];
     (await connection.getProgramAccounts(swapId))
         .filter(
@@ -121,7 +134,8 @@ export const queryPools = async (swapId: PublicKey, connection:Connection, isLeg
                 data: undefined as any,
                 account: item.account,
                 pubkey: item.pubkey,
-                init: async () => { },
+                init: async () => {
+                },
             };
 
             const layout =
@@ -189,7 +203,7 @@ export const queryPools = async (swapId: PublicKey, connection:Connection, isLeg
     // This will pre-cache all accounts used by pools
     // All those accounts are updated whenever there is a change
     await getMultipleAccounts(connection, toQuery, "single").then(
-        ({ keys, array }) => {
+        ({keys, array}) => {
             return array.map((obj, index) => {
                 const pubKey = new PublicKey(keys[index]);
                 if (obj.data.length === AccountLayout.span) {

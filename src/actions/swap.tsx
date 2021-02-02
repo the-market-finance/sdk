@@ -18,11 +18,11 @@ const convertAmount = (amount: string, mint?: MintInfo) => {
 };
 
 
-interface SwapArgs {
+export interface SwapArgs {
     mintAddressA: string,
     amountA: string,
     mintAddressB: string,
-    amountB: string
+    amountB?: string
 }
 
 export const getAccountByMint = (userAccounts: Array<TokenAccount>, swapArgs: SwapArgs) => {
@@ -55,8 +55,6 @@ export const swap = async (connection: Connection, wallet: any, swapArgs: SwapAr
     ])
     const AllPools = mixPool.flat();
     const pool = await getPoolForBasket(connection, [mintAddressA,mintAddressB], AllPools)
-    console.log('pool-sk',pool)
-
     // end fetch pools
 
     const [mintInfoA, mintInfoB] = await Promise.all([
