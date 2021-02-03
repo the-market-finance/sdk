@@ -9,6 +9,8 @@ This library is designed to work with The Market Finance protocol.
 - getBorrowApy, borrowApyVal - information request displaying the current APY loan rate
 - availableForBorrow - information request displaying how much you can borrow
 - getDepositApy, depositApyVal - information request displaying the current rate on the APY deposit
+- getEnrichedLendingObligations - get obligations with a user account, for operations (liquidate)
+- liquidate, swap - operations of liquidate and swap
 
 Many functions take arguments such as wallet instances, connections from libraries:
 

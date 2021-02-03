@@ -19,7 +19,7 @@ import {MINT_TO_MARKET} from "../models/marketOverrides";
 import {fromLamports, getTokenName, KnownToken, KnownTokenMap, STABLE_COINS, wadToLamports} from "../utils/utils";
 import {DexMarketParser} from "../models/dex";
 import {localTokens} from "../config/tokens";
-import {refreshAccounts, simulateMarketOrderFill} from "../contexts/market";
+import {simulateMarketOrderFill} from "../contexts/market";
 import {getUserObligations, initalQuery} from "./common";
 
 interface EnrichedLendingObligationInfo extends LendingObligation {
