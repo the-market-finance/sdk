@@ -405,18 +405,15 @@ export const borrow = async (
             depositReserve.info.collateralSupply,
             borrowReserve.pubkey,
             borrowReserve.info.liquiditySupply,
-
             obligation,
             obligationMint,
             obligationTokenOutput,
             wallet.publicKey,
-
             authority,
-
             dexMarketAddress,
             dexOrderBookSide,
-
-            memory
+            memory,
+            programId
         )
     );
     try {

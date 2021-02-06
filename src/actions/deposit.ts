@@ -216,7 +216,8 @@ export const deposit = async (
                 authority,
                 reserveAddress,
                 reserve.liquiditySupply,
-                reserve.collateralMint
+                reserve.collateralMint,
+                programId
             )
         );
     } else {
@@ -235,7 +236,8 @@ export const deposit = async (
                 reserve.collateralSupply,
                 reserve.lendingMarket,
                 authority,
-                reserve.dexMarket
+                reserve.dexMarket,
+                programId
             )
         );
     }

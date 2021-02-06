@@ -120,7 +120,8 @@ export const initReserveInstruction = (
     lendingMarket: PublicKey,
     lendingMarketAuthority: PublicKey,
 
-    dexMarket: PublicKey // TODO: optional
+    dexMarket: PublicKey, // TODO: optional,
+    programId: PublicKey // lending program id
 ): TransactionInstruction => {
     const dataLayout = BufferLayout.struct([
         BufferLayout.u8("instruction"),
@@ -159,7 +160,7 @@ export const initReserveInstruction = (
     ];
     return new TransactionInstruction({
         keys,
-        programId: LENDING_PROGRAM_ID,
+        programId,
         data,
     });
 };

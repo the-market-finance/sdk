@@ -186,7 +186,8 @@ export const repay = async (
             obligation.pubkey,
             obligation.info.tokenMint,
             obligationToken.pubkey,
-            authority
+            authority,
+            programId
         )
     );
 

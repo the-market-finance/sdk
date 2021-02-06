@@ -186,7 +186,8 @@ export const liquidate = async (
           authority,
           dexMarketAddress,
           dexOrderBookSide,
-          memory
+          memory,
+          programId
       )
   );
 

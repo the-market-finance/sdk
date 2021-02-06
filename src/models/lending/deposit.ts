@@ -5,7 +5,7 @@ import {
 } from "@solana/web3.js";
 import BN from "bn.js";
 import * as BufferLayout from "buffer-layout";
-import { LENDING_PROGRAM_ID, TOKEN_PROGRAM_ID } from "../../constants";
+import { TOKEN_PROGRAM_ID } from "../../constants";
 import { wadToLamports } from "../../utils/utils";
 import * as Layout from "./../../utils/layout";
 import { calculateBorrowAPY } from "./borrow";
@@ -30,7 +30,8 @@ export const depositInstruction = (
   reserveAuthority: PublicKey,
   reserveAccount: PublicKey,
   reserveSupply: PublicKey,
-  collateralMint: PublicKey
+  collateralMint: PublicKey,
+  programId: PublicKey // (lending program id)
 ): TransactionInstruction => {
   const dataLayout = BufferLayout.struct([
     BufferLayout.u8("instruction"),
@@ -58,7 +59,7 @@ export const depositInstruction = (
   ];
   return new TransactionInstruction({
     keys,
-    programId: LENDING_PROGRAM_ID,
+    programId: programId,
     data,
   });
 };
