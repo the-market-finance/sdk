@@ -7,7 +7,6 @@ import {
     ParsedAccount,
     precacheUserTokenAccounts,
 } from "../contexts/accounts";
-import {LENDING_PROGRAM_ID} from "../constants";
 import {
     isLendingObligation,
     isLendingReserve,
@@ -142,17 +141,18 @@ export interface SerumMarket {
  *
  * @param connection: Connection
  * @param wallet: Wallet
+ * @param programId: PublicKey (lending program id)
  * (optional, passed to get one account at this address, an array of 1 elements)
  * @param address?: string | PublicKey
  * @return Promise<EnrichedLendingObligation[]>
  * @async
  */
-export const getEnrichedLendingObligations = async (connection: Connection, wallet: any, address?: string | PublicKey) => {
+export const getEnrichedLendingObligations = async (connection: Connection, wallet: any, programId: PublicKey, address?: string | PublicKey) => {
 
     const id = address ? typeof address === "string" ? address : address?.toBase58() : undefined;
 
     const programAccounts = await connection.getProgramAccounts(
-        LENDING_PROGRAM_ID
+        programId
     );
 
     // cache
@@ -169,7 +169,7 @@ export const getEnrichedLendingObligations = async (connection: Connection, wall
             LendingObligationParser(acc.pubkey, acc.account)).filter(acc => acc?.pubkey.toBase58());
 
     // precache obligation mints
-    const userObligationsByReserve = await getUserObligations(connection, wallet)
+    const userObligationsByReserve = await getUserObligations(connection, wallet, programId)
 
     const { keys, array } = await getMultipleAccounts(
         connection,

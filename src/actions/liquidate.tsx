@@ -7,7 +7,7 @@ import {
 
 import { liquidateInstruction } from "../models/lending/liquidate";
 import { AccountLayout, Token } from "@solana/spl-token";
-import { LENDING_PROGRAM_ID, TOKEN_PROGRAM_ID } from "../constants";
+import { TOKEN_PROGRAM_ID } from "../constants";
 import { createTempMemoryAccount, ensureSplAccount, findOrCreateAccountByMint } from "./account";
 import {cache, ParsedAccount} from "../contexts/accounts";
 import {sendTransaction} from "../contexts/connection";
@@ -26,6 +26,7 @@ import {MINT_TO_MARKET} from "../models/marketOverrides";
  * @param connection: Connection
  * @param wallet: Wallet
  * @param obligation: EnrichedLendingObligation
+ * @param programId: PublicKey (lending program id)
  * @param notifyCallback?: (message:object) => void | any (e.g. the notify function from antd)
  * @return void
  * @async
@@ -34,6 +35,7 @@ export const liquidate = async (
     connection: Connection,
     wallet: any,
     obligation: EnrichedLendingObligation,
+    programId: PublicKey,
     notifyCallback?: (message: object) => void | any
 ) => {
   const sendMessageCallback = notifyCallback ? notifyCallback : (message: object) => console.log(message)
@@ -48,7 +50,7 @@ export const liquidate = async (
   const cleanupInstructions: TransactionInstruction[] = [];
 
   const programAccounts = await connection.getProgramAccounts(
-      LENDING_PROGRAM_ID
+      programId
   );
 
   const reserveAccounts = programAccounts
@@ -108,7 +110,7 @@ export const liquidate = async (
 
   const [authority] = await PublicKey.findProgramAddress(
       [repayReserve.info.lendingMarket.toBuffer()],
-      LENDING_PROGRAM_ID
+      programId
   );
 
   const fromAccount = ensureSplAccount(

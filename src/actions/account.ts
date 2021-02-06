@@ -6,7 +6,6 @@ import {
     TransactionInstruction,
 } from "@solana/web3.js";
 import {
-    LENDING_PROGRAM_ID,
     TOKEN_PROGRAM_ID,
     WRAPPED_SOL_MINT,
 } from "../constants";
@@ -83,7 +82,8 @@ export function createUninitializedObligation(
     instructions: TransactionInstruction[],
     payer: PublicKey,
     amount: number,
-    signers: Account[]
+    signers: Account[],
+    programId: PublicKey
 ) {
     const account = new Account();
     instructions.push(
@@ -92,7 +92,7 @@ export function createUninitializedObligation(
             newAccountPubkey: account.publicKey,
             lamports: amount,
             space: LendingObligationLayout.span,
-            programId: LENDING_PROGRAM_ID,
+            programId: programId,
         })
     );
 

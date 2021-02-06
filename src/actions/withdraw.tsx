@@ -5,8 +5,8 @@ import {
     TransactionInstruction,
 } from "@solana/web3.js";
 import {LendingReserve, reserveMarketCap, withdrawInstruction} from "../models/lending";
-import {AccountLayout, Token} from "@solana/spl-token";
-import {LENDING_PROGRAM_ID, programIds, TOKEN_PROGRAM_ID} from "../constants";
+import {AccountLayout} from "@solana/spl-token";
+import {programIds} from "../constants";
 import {findOrCreateAccountByMint} from "./account";
 import {approve, TokenAccount} from "../models";
 import {sendTransaction} from "../contexts/connection";
@@ -24,6 +24,7 @@ import {getUserAccounts} from "./common";
  * @param reserveAddress: PublicKey (can be obtained through getReserveAccounts(connection, address)[0].pubkey)
  * @param connection: Connection
  * @param wallet: Wallet
+ * @param programId: PublicKey (lending program id)
  * @param notifyCallback?: (message:object) => void | any (e.g. the notify function from antd)
  * @return void
  * @async
@@ -34,6 +35,7 @@ export const withdraw = async (
     reserveAddress: PublicKey,
     connection: Connection,
     wallet: any,
+    programId: PublicKey,
     notifyCallback?: (message: object) => void | any
 ) => {
     const sendMessageCallback = notifyCallback ? notifyCallback : (message: object) => console.log(message)
@@ -114,7 +116,7 @@ export const withdraw = async (
 
     const [authority] = await PublicKey.findProgramAddress(
         [reserve.lendingMarket.toBuffer()],
-        LENDING_PROGRAM_ID
+        programId,
     );
 
     const fromAccount = from.pubkey;

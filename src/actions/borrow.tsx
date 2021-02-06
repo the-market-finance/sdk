@@ -6,13 +6,13 @@ import {
 } from "@solana/web3.js";
 import {
     calculateBorrowAPY,
-    calculateDepositAPY, isLendingObligation,
+    isLendingObligation,
     isLendingReserve, LendingMarketParser, LendingObligationParser,
     LendingReserve,
     LendingReserveParser, reserveMarketCap
 } from "../models/lending";
 import {AccountLayout, MintInfo, MintLayout, Token} from "@solana/spl-token";
-import {LENDING_PROGRAM_ID, programIds, TOKEN_PROGRAM_ID} from "../constants";
+import {TOKEN_PROGRAM_ID} from "../constants";
 import {
     createTempMemoryAccount,
     createUninitializedAccount,
@@ -21,18 +21,18 @@ import {
     ensureSplAccount,
     findOrCreateAccountByMint,
 } from "./account";
-import {cache, MintParser, ParsedAccount, TokenAccountParser} from "../contexts/accounts";
+import {cache, MintParser, ParsedAccount} from "../contexts/accounts";
 import {
     TokenAccount,
     LendingObligationLayout,
     borrowInstruction,
     LendingMarket,
     BorrowAmountType,
-    LendingObligation, approve,
+    approve,
 } from "../models";
-import {formatNumber, formatPct, fromLamports, toLamports, wadToLamports} from "../utils/utils";
+import {formatNumber, formatPct, fromLamports, toLamports} from "../utils/utils";
 import {sendTransaction} from "../contexts/connection";
-import {DexMarketParser, OrderBookParser} from "../models/dex";
+import {DexMarketParser} from "../models/dex";
 import {getUserAccounts} from "./common";
 
 
@@ -42,14 +42,15 @@ import {getUserAccounts} from "./common";
  * @param connection: Connection
  * @param wallet: Wallet
  * @param publicKey: string | PublicKey (token address)
+ * @param programId: PublicKey (lending program id)
  * @return Promise<string>
  * @async
  */
-export const availableForBorrow = async (connection: Connection, wallet: any, publicKey: string | PublicKey): Promise<string> => {
+export const availableForBorrow = async (connection: Connection, wallet: any, publicKey: string | PublicKey, programId: PublicKey): Promise<string> => {
     const pk = typeof publicKey === "string" ? publicKey : publicKey?.toBase58();
 
     const programAccounts = await connection.getProgramAccounts(
-        LENDING_PROGRAM_ID
+        programId
     );
     const lendingReserveAccount =
         programAccounts
@@ -108,13 +109,14 @@ export const borrowApyVal = (reserve: LendingReserve): string => {
  *
  * @param connection: Connection
  * @param publicKey: string | PublicKey (token address)
+ * @param programId: PublicKey (lending program id)
  * @return Promise<string>
  * @async
  */
-export const getBorrowApy = async (connection: Connection, publicKey: string | PublicKey): Promise<string> => {
+export const getBorrowApy = async (connection: Connection, publicKey: string | PublicKey, programId: PublicKey): Promise<string> => {
     const pk = typeof publicKey === "string" ? publicKey : publicKey?.toBase58();
     const programAccounts = await connection.getProgramAccounts(
-        LENDING_PROGRAM_ID
+        programId
     );
     const lendingReserveAccount =
         programAccounts
@@ -138,6 +140,7 @@ export const getBorrowApy = async (connection: Connection, publicKey: string | P
  * @param amount: number (borrow amount as Float)
  * @param collateralAddress: PublicKey | string (address or PublicKey of the token for collateral)
  * @param borrowReserve: ParsedAccount<LendingReserve> (can be obtained through getReserveAccounts(connection, address)[0]))
+ * @param programId: PublicKey (lending program id)
  * @param notifyCallback?: (message:object) => void | any (e.g. the notify function from antd)
  * @return void
  * @async
@@ -148,6 +151,7 @@ export const borrow = async (
     amount: number,
     collateralAddress: PublicKey | string,
     borrowReserve: ParsedAccount<LendingReserve>,
+    programId: PublicKey,
     notifyCallback?: (message: object) => void | any
 ) => {
 
@@ -162,7 +166,7 @@ export const borrow = async (
     const collateralId = typeof collateralAddress === "string" ? collateralAddress : collateralAddress?.toBase58();
     // fetch from
     const programAccounts = await connection.getProgramAccounts(
-        LENDING_PROGRAM_ID
+        programId
     );
 
     const lendingReserveAccount =
@@ -248,7 +252,8 @@ export const borrow = async (
             await connection.getMinimumBalanceForRentExemption(
                 LendingObligationLayout.span
             ),
-            signers
+            signers,
+            programId
         );
 
     const obligationMint = userObligationsByReserve.length > 0
@@ -306,7 +311,7 @@ export const borrow = async (
 
     const [authority] = await PublicKey.findProgramAddress(
         [depositReserve.info.lendingMarket.toBuffer()],
-        LENDING_PROGRAM_ID
+        programId
     );
 
     let amountLamports: number = 0;

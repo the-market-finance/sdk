@@ -8,10 +8,9 @@ import {
 import {isLendingReserve, LendingObligationParser, LendingReserve, LendingReserveParser} from "../models/lending";
 import {repayInstruction} from "../models/lending/repay";
 import {AccountLayout, Token} from "@solana/spl-token";
-import {LENDING_PROGRAM_ID, programIds, TOKEN_PROGRAM_ID} from "../constants";
+import {TOKEN_PROGRAM_ID} from "../constants";
 import {findOrCreateAccountByMint} from "./account";
-import {LendingObligation, TokenAccount} from "../models";
-import {cache, MintParser, ParsedAccount, TokenAccountParser} from "../contexts/accounts";
+import {cache, MintParser, ParsedAccount} from "../contexts/accounts";
 import {sendTransaction} from "../contexts/connection";
 import {fromLamports, wadToLamports} from "../utils/utils";
 import {getUserAccounts} from "./common";
@@ -27,6 +26,7 @@ import {getUserAccounts} from "./common";
  * @param collateralAddress: PublicKey | string (collateral token address)
  * @param connection: Connection
  * @param wallet: Wallet
+ * @param programId: PublicKey (lending program id)
  * @param notifyCallback?: (message:object) => void | any (e.g. the notify function from antd)
  * @return void
  * @async
@@ -37,6 +37,7 @@ export const repay = async (
     collateralAddress: PublicKey | string,// (адресс токена залога)
     connection: Connection,
     wallet: any,
+    programId: PublicKey,
     notifyCallback?: (message: object) => void | any
 ) => {
     const sendMessageCallback = notifyCallback ? notifyCallback : (message: object) => console.log(message)
@@ -49,7 +50,7 @@ export const repay = async (
     const collateralId = typeof collateralAddress === "string" ? collateralAddress : collateralAddress?.toBase58();
     // fetch collateralReserve account(withdrawReserve)
     const programAccounts = await connection.getProgramAccounts(
-        LENDING_PROGRAM_ID
+        programId
     );
     const collateralReserve =
         programAccounts
@@ -131,7 +132,7 @@ export const repay = async (
 
     const [authority] = await PublicKey.findProgramAddress(
         [repayReserve.info.lendingMarket.toBuffer()],
-        LENDING_PROGRAM_ID
+        programId
     );
 
     const fromAccount = from.pubkey;

@@ -1,6 +1,5 @@
-import {LENDING_PROGRAM_ID, programIds} from "../constants";
+import {programIds} from "../constants";
 import {
-    calculateBorrowAPY,
     isLendingObligation,
     isLendingReserve, LendingObligationParser,
     LendingReserve,
@@ -41,15 +40,16 @@ export const getUserAccounts = async (connection: Connection, wallet: any) => {
  * Get parsed tokens for operations (deposit, borrow)
  *
  * @param connection: Connection
+ * @param programId: PublicKey (lending program id)
  * (optional, passed to get one account at this address, an array of 1 elements)
  * @param address?: string | PublicKey
  * @return Promise<ParsedAccount<LendingReserve>[]>
  * @async
  */
-export const getReserveAccounts = async (connection: Connection, address?: string | PublicKey): Promise<ParsedAccount<LendingReserve>[]> => {
+export const getReserveAccounts = async (connection: Connection, programId: PublicKey, address?: string | PublicKey): Promise<ParsedAccount<LendingReserve>[]> => {
     const id = typeof address === "string" ? address : address?.toBase58();
     const programAccounts = await connection.getProgramAccounts(
-        LENDING_PROGRAM_ID
+        programId
     );
     const lendingReserveAccounts = programAccounts
         .filter(item =>
@@ -65,16 +65,17 @@ export const getReserveAccounts = async (connection: Connection, address?: strin
  *
  * @param connection: Connection
  * @param wallet: Wallet
+ * @param programId: PublicKey (lending program id)
  * (optional, passed to get one account at this address, an array of 1 elements)
  * @param address?: string | PublicKey
  * @return Promise<ParsedAccount<TokenAccount>[]>
  * @async
  */
-export const getUserDeposit = async (connection: Connection, wallet: any, address?: string | PublicKey) => {
+export const getUserDeposit = async (connection: Connection, wallet: any, programId: PublicKey, address?: string | PublicKey) => {
 
     const id = typeof address === "string" ? address : address?.toBase58();
 
-    const reserveAccounts = await getReserveAccounts(connection);
+    const reserveAccounts = await getReserveAccounts(connection, programId);
 
     const reservesByCollateralMint = reserveAccounts.reduce((result, item) => {
         result.set(item.info.collateralMint.toBase58(), item);
@@ -93,22 +94,23 @@ export const getUserDeposit = async (connection: Connection, wallet: any, addres
             ) as ParsedAccount<LendingReserve>,
         }));
 
-    return !id ? userDepositAccounts : await getReserveAccounts(connection, id);
+    return !id ? userDepositAccounts : await getReserveAccounts(connection, programId, id);
 }
 /**
  * Get obligations with a user account, for operations (borrow repayment)
  *
  * @param connection: Connection
  * @param wallet: Wallet
+ * @param programId: PublicKey (lending program id)
  * (optional, passed to get one account at this address, an array of 1 elements)
  * @param address?: string | PublicKey
  * @return Promise<{obligation:any, userAccounts:any}[]>
  * @async
  */
-export const getUserObligations = async (connection: Connection, wallet: any, address?: string | PublicKey) => {
+export const getUserObligations = async (connection: Connection, wallet: any, programId: PublicKey, address?: string | PublicKey) => {
     const id = typeof address === "string" ? address : address?.toBase58();
     const programAccounts = await connection.getProgramAccounts(
-        LENDING_PROGRAM_ID
+        programId
     );
 
     const userAccounts = await getUserAccounts(connection, wallet)

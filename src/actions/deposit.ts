@@ -1,5 +1,5 @@
 import {
-    Account, AccountInfo,
+    Account,
     Connection,
     PublicKey,
     TransactionInstruction,
@@ -11,17 +11,16 @@ import {
     depositInstruction,
     initReserveInstruction, isLendingReserve, LendingReserve, LendingReserveParser,
 } from "../models/lending";
-import {AccountLayout, Token} from "@solana/spl-token";
-import {LENDING_PROGRAM_ID, programIds, TOKEN_PROGRAM_ID} from "../constants";
+import {AccountLayout} from "@solana/spl-token";
 import {
     createUninitializedAccount,
     ensureSplAccount,
     findOrCreateAccountByMint,
 } from "./account";
-import {approve, TokenAccount} from "../models";
+import {approve} from "../models";
 import {sendTransaction} from "../contexts/connection";
 import {formatPct, fromLamports, wadToLamports} from "../utils/utils";
-import {cache, MintParser, TokenAccountParser} from "../contexts/accounts";
+import {cache, MintParser} from "../contexts/accounts";
 import {getUserAccounts} from "./common";
 
 /**
@@ -43,13 +42,14 @@ export const depositApyVal = (reserve: LendingReserve):string => {
  *
  * @param connection: Connection
  * @param publicKey: string | PublicKey (token address)
+ * @param programId: PublicKey (lending program id)
  * @return Promise<string>
  * @async
  */
-export const getDepositApy = async (connection: Connection, publicKey: string | PublicKey):Promise<string> => {
+export const getDepositApy = async (connection: Connection, publicKey: string | PublicKey, programId: PublicKey):Promise<string> => {
     const pk = typeof publicKey === "string" ? publicKey : publicKey?.toBase58();
     const programAccounts = await connection.getProgramAccounts(
-        LENDING_PROGRAM_ID
+        programId
     );
     const lendingReserveAccount =
         programAccounts
@@ -74,6 +74,7 @@ export const getDepositApy = async (connection: Connection, publicKey: string | 
  * @param reserveAddress: PublicKey (can be obtained through getReserveAccounts(connection, address)[0].pubkey)
  * @param connection: Connection
  * @param wallet: Wallet
+ * @param programId: PublicKey (lending program id)
  * @param notifyCallback?: (message:object) => void | any (e.g. the notify function from antd)
  * @return void
  * @async
@@ -84,6 +85,7 @@ export const deposit = async (
     reserveAddress: PublicKey,
     connection: Connection,
     wallet: any,
+    programId: PublicKey,
     notifyCallback?: (message:object) => void | any
 ) => {
     const sendMessageCallback = notifyCallback ? notifyCallback : (message:object) => console.log(message)
@@ -147,7 +149,7 @@ export const deposit = async (
 
     const [authority] = await PublicKey.findProgramAddress(
         [reserve.lendingMarket.toBuffer()], // which account should be authority
-        LENDING_PROGRAM_ID
+        programId
     );
 
     const fromAccount = ensureSplAccount(
