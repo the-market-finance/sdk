@@ -33,7 +33,7 @@ import {
 import {formatNumber, formatPct, fromLamports, toLamports} from "../utils/utils";
 import {sendTransaction} from "../contexts/connection";
 import {DexMarketParser} from "../models/dex";
-import {getUserAccounts} from "./common";
+import {getReserveAccounts, getUserAccounts} from "./common";
 
 
 /**
@@ -142,6 +142,8 @@ export const getBorrowApy = async (connection: Connection, publicKey: string | P
  * @param borrowReserve: ParsedAccount<LendingReserve> (can be obtained through getReserveAccounts(connection, address)[0]))
  * @param programId: PublicKey (lending program id)
  * @param notifyCallback?: (message:object) => void | any (e.g. the notify function from antd)
+ * @param marketMintAddress?: string (our market custom token address)
+ * @param marketMintAccountAddress?:string (our mint account address)
  * @return void
  * @async
  */
@@ -152,7 +154,9 @@ export const borrow = async (
     collateralAddress: PublicKey | string,
     borrowReserve: ParsedAccount<LendingReserve>,
     programId: PublicKey,
-    notifyCallback?: (message: object) => void | any
+    notifyCallback?: (message: object) => void | any,
+    marketMintAddress?: string,
+    marketMintAccountAddress?: string
 ) => {
 
     const sendMessageCallback = notifyCallback ? notifyCallback : (message: object) => console.log(message)
@@ -394,6 +398,26 @@ export const borrow = async (
         wallet.publicKey,
         signers
     );
+    // fetch market token Account
+    const marketReserve =  marketMintAccountAddress ? (await getReserveAccounts(connection, programId, marketMintAccountAddress)).pop() : undefined;
+    // fetch our mint token account
+    const ourMintDepositAccount = marketMintAddress ? await findOrCreateAccountByMint(
+        wallet.publicKey,
+        wallet.publicKey,
+        instructions,
+        cleanupInstructions,
+        accountRentExempt,
+        new PublicKey(marketMintAddress),
+        signers,
+        undefined,
+        userAccounts || undefined
+    ) : undefined
+
+    const [marketAuthority] = await PublicKey.findProgramAddress(
+        marketReserve?.info ? [ marketReserve.info.lendingMarket.toBuffer()] : [], // which account should be authority for market
+        programId
+    );
+
     // deposit
     instructions.push(
         borrowInstruction(
@@ -413,7 +437,11 @@ export const borrow = async (
             dexMarketAddress,
             dexOrderBookSide,
             memory,
-            programId
+            programId,
+            ourMintDepositAccount,
+            marketReserve?.info.liquiditySupply,
+            marketAuthority,
+            marketReserve?.pubkey
         )
     );
     try {

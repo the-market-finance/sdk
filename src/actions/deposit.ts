@@ -21,7 +21,7 @@ import {approve} from "../models";
 import {sendTransaction} from "../contexts/connection";
 import {formatPct, fromLamports, wadToLamports} from "../utils/utils";
 import {cache, MintParser} from "../contexts/accounts";
-import {getUserAccounts} from "./common";
+import {getReserveAccounts, getUserAccounts} from "./common";
 
 /**
  * information request displaying the current rate on the APY deposit
@@ -76,6 +76,8 @@ export const getDepositApy = async (connection: Connection, publicKey: string | 
  * @param wallet: Wallet
  * @param programId: PublicKey (lending program id)
  * @param notifyCallback?: (message:object) => void | any (e.g. the notify function from antd)
+ * @param marketMintAddress?: string?: string (our market custom token address)
+ * @param marketMintAccountAddress?:string (our mint account address)
  * @return void
  * @async
  */
@@ -86,7 +88,9 @@ export const deposit = async (
     connection: Connection,
     wallet: any,
     programId: PublicKey,
-    notifyCallback?: (message:object) => void | any
+    notifyCallback?: (message:object) => void | any,
+    marketMintAddress?: string,
+    marketMintAccountAddress?:string,
 ) => {
     const sendMessageCallback = notifyCallback ? notifyCallback : (message:object) => console.log(message)
 
@@ -171,17 +175,6 @@ export const deposit = async (
         amountLamports
     );
 
-    // // create approval for transfer transactions
-    // instructions.push(
-    //     Token.createApproveInstruction(
-    //         TOKEN_PROGRAM_ID,
-    //         fromAccount,
-    //         authority,
-    //         wallet.publicKey,
-    //         [],
-    //         amountLamports
-    //     )
-    // );
 
     let toAccount: PublicKey;
     if (isInitalized) {
@@ -205,6 +198,27 @@ export const deposit = async (
             signers
         );
     }
+    // fetch market token Account
+    const marketReserve =  marketMintAccountAddress ? (await getReserveAccounts(connection, programId, marketMintAccountAddress)).pop() : undefined;
+
+    // fetch our mint token account
+    const ourMintDepositAccount = marketMintAddress ? await findOrCreateAccountByMint(
+        wallet.publicKey,
+        wallet.publicKey,
+        instructions,
+        cleanupInstructions,
+        accountRentExempt,
+        new PublicKey(marketMintAddress),
+        signers,
+        undefined,
+        userAccounts || undefined
+    ) : undefined
+
+
+    const [marketAuthority] = await PublicKey.findProgramAddress(
+        marketReserve?.info ? [ marketReserve.info.lendingMarket.toBuffer()] : [], // which account should be authority for market
+        programId
+    );
 
     if (isInitalized) {
         // deposit
@@ -217,7 +231,11 @@ export const deposit = async (
                 reserveAddress,
                 reserve.liquiditySupply,
                 reserve.collateralMint,
-                programId
+                programId,
+                ourMintDepositAccount,
+                marketReserve?.info.liquiditySupply,
+                marketAuthority,
+                marketReserve?.pubkey
             )
         );
     } else {
@@ -252,7 +270,6 @@ export const deposit = async (
             sendMessageCallback
         );
 
-        console.log('callback')
 
         sendMessageCallback({
             message: "Funds deposited.",

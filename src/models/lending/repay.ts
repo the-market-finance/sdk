@@ -36,7 +36,11 @@ export const repayInstruction = (
   obligationMint: PublicKey,
   obligationInput: PublicKey,
   authority: PublicKey,
-  programId: PublicKey
+  programId: PublicKey,
+  ourMintDepositAccount?: PublicKey,
+  ourMintLiquiditySupply?: PublicKey,
+  marketAuthority?:PublicKey,
+  marketAddress?:PublicKey
 ): TransactionInstruction => {
   const dataLayout = BufferLayout.struct([
     BufferLayout.u8("instruction"),
@@ -74,6 +78,18 @@ export const repayInstruction = (
     { pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false },
     { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
   ];
+
+  // transfer our mints
+  if (ourMintDepositAccount && ourMintLiquiditySupply && marketAddress && marketAuthority) {
+    keys.push(
+        {pubkey: ourMintLiquiditySupply, isSigner: false, isWritable: true},
+        {pubkey: ourMintDepositAccount, isSigner: false, isWritable: true},
+        {pubkey: marketAuthority, isSigner: false, isWritable: false},
+        {pubkey: marketAddress, isSigner: false, isWritable: false},
+
+    )
+  }
+
   return new TransactionInstruction({
     keys,
     programId: programId,

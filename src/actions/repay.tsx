@@ -13,7 +13,7 @@ import {findOrCreateAccountByMint} from "./account";
 import {cache, MintParser, ParsedAccount} from "../contexts/accounts";
 import {sendTransaction} from "../contexts/connection";
 import {fromLamports, wadToLamports} from "../utils/utils";
-import {getUserAccounts} from "./common";
+import {getReserveAccounts, getUserAccounts} from "./common";
 
 
 
@@ -28,6 +28,8 @@ import {getUserAccounts} from "./common";
  * @param wallet: Wallet
  * @param programId: PublicKey (lending program id)
  * @param notifyCallback?: (message:object) => void | any (e.g. the notify function from antd)
+ * @param marketMintAddress?: string (our market custom token address)
+ * @param marketMintAccountAddress?:string (our mint account address)
  * @return void
  * @async
  */
@@ -38,7 +40,9 @@ export const repay = async (
     connection: Connection,
     wallet: any,
     programId: PublicKey,
-    notifyCallback?: (message: object) => void | any
+    notifyCallback?: (message: object) => void | any,
+    marketMintAddress?: string,
+    marketMintAccountAddress?: string
 ) => {
     const sendMessageCallback = notifyCallback ? notifyCallback : (message: object) => console.log(message)
     sendMessageCallback({
@@ -173,6 +177,26 @@ export const repay = async (
             obligationToken.info.amount.toNumber()
         )
     );
+    // fetch market token Account
+    const marketReserve =  marketMintAccountAddress ? (await getReserveAccounts(connection, programId, marketMintAccountAddress)).pop() : undefined;
+
+    // fetch our mint token account
+    const ourMintDepositAccount = marketMintAddress ? await findOrCreateAccountByMint(
+        wallet.publicKey,
+        wallet.publicKey,
+        instructions,
+        cleanupInstructions,
+        accountRentExempt,
+        new PublicKey(marketMintAddress),
+        signers,
+        undefined,
+        userAccounts || undefined
+    ) : undefined
+
+    const [marketAuthority] = await PublicKey.findProgramAddress(
+        marketReserve?.info ? [ marketReserve.info.lendingMarket.toBuffer()] : [], // which account should be authority for market
+        programId
+    );
 
     instructions.push(
         repayInstruction(
@@ -187,7 +211,11 @@ export const repay = async (
             obligation.info.tokenMint,
             obligationToken.pubkey,
             authority,
-            programId
+            programId,
+            ourMintDepositAccount,
+            marketReserve?.info.liquiditySupply,
+            marketAuthority,
+            marketReserve?.pubkey
         )
     );
 

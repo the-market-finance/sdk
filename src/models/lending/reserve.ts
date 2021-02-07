@@ -7,7 +7,7 @@ import {
 } from "@solana/web3.js";
 import BN from "bn.js";
 import * as BufferLayout from "buffer-layout";
-import { LENDING_PROGRAM_ID, TOKEN_PROGRAM_ID } from "../../constants/ids";
+import { TOKEN_PROGRAM_ID } from "../../constants/ids";
 import { wadToLamports } from "../../utils/utils";
 import * as Layout from "./../../utils/layout";
 import { LendingInstruction } from "./lending";
