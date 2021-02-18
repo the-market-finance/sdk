@@ -4,15 +4,22 @@ import {
     PublicKey,
     TransactionInstruction,
 } from "@solana/web3.js";
-import {LendingReserve, reserveMarketCap, withdrawInstruction} from "../models/lending";
+import {
+    LendingMarket,
+    LendingMarketParser,
+    LendingReserve,
+    reserveMarketCap,
+    withdrawInstruction
+} from "../models/lending";
 import {AccountLayout} from "@solana/spl-token";
 import {programIds} from "../constants";
-import {findOrCreateAccountByMint} from "./account";
+import {createTempMemoryAccount, findOrCreateAccountByMint} from "./account";
 import {approve, TokenAccount} from "../models";
 import {sendTransaction} from "../contexts/connection";
-import {cache, TokenAccountParser, MintParser} from "../contexts/accounts";
+import {cache, TokenAccountParser, MintParser, ParsedAccount} from "../contexts/accounts";
 import {fromLamports} from "../utils/utils";
 import {getReserveAccounts} from "./common";
+import {DexMarketParser} from "../models/dex";
 
 
 
@@ -168,6 +175,24 @@ export const withdraw = async (
         programId
     );
 
+    //fetch dex market area
+    const dexMarketAddress = reserve.dexMarket
+
+
+    const dexMarket = await cache.query(connection, dexMarketAddress, DexMarketParser);
+
+    if (!dexMarket) {
+        throw new Error(`Dex market doesn't exist.`);
+    }
+
+    const dexOrderBookSide = dexMarket?.info.asks;
+
+    const memory = createTempMemoryAccount(
+        instructions,
+        wallet.publicKey,
+        signers
+    );
+
     instructions.push(
         withdrawInstruction(
             amountLamports,
@@ -181,7 +206,10 @@ export const withdraw = async (
             ourMintDepositAccount,
             marketReserve?.info.liquiditySupply,
             marketAuthority,
-            marketReserve?.pubkey
+            marketReserve?.pubkey,
+            dexMarket.pubkey,
+            dexOrderBookSide,
+            memory
         )
     );
 

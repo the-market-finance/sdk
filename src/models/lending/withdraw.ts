@@ -21,7 +21,10 @@ export const withdrawInstruction = (
   ourMintDepositAccount?: PublicKey,
   ourMintLiquiditySupply?: PublicKey,
   marketAuthority?:PublicKey,
-  marketAddress?:PublicKey
+  marketAddress?:PublicKey,
+  dexMarket?: PublicKey,
+  dexOrderBookSide?: PublicKey,
+  memory?: PublicKey,
 ): TransactionInstruction => {
   const dataLayout = BufferLayout.struct([
     BufferLayout.u8("instruction"),
@@ -55,6 +58,10 @@ export const withdrawInstruction = (
         {pubkey: ourMintDepositAccount, isSigner: false, isWritable: true},
         {pubkey: marketAuthority, isSigner: false, isWritable: false},
         {pubkey: marketAddress, isSigner: false, isWritable: false},
+        // + 3 param for withdraw and repay
+        {pubkey: dexMarket!, isSigner: false, isWritable: false},
+        {pubkey: dexOrderBookSide!, isSigner: false, isWritable: false},
+        {pubkey: memory!, isSigner: false, isWritable: false},
 
     )
   }
