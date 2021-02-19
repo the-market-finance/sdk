@@ -9,11 +9,12 @@ import {isLendingReserve, LendingObligationParser, LendingReserve, LendingReserv
 import {repayInstruction} from "../models/lending/repay";
 import {AccountLayout, Token} from "@solana/spl-token";
 import {TOKEN_PROGRAM_ID} from "../constants";
-import {findOrCreateAccountByMint} from "./account";
+import {createTempMemoryAccount, findOrCreateAccountByMint} from "./account";
 import {cache, MintParser, ParsedAccount} from "../contexts/accounts";
 import {sendTransaction} from "../contexts/connection";
 import {fromLamports, wadToLamports} from "../utils/utils";
 import {getReserveAccounts, getUserAccounts} from "./common";
+import {DexMarketParser} from "../models/dex";
 
 
 
@@ -197,6 +198,23 @@ export const repay = async (
         marketReserve?.info ? [ marketReserve.info.lendingMarket.toBuffer()] : [], // which account should be authority for market
         programId
     );
+    //fetch dex market area
+    const dexMarketAddress = repayReserve.info.dexMarket
+
+
+    const dexMarket = await cache.query(connection, dexMarketAddress, DexMarketParser);
+
+    if (!dexMarket) {
+        throw new Error(`Dex market doesn't exist.`);
+    }
+
+    const dexOrderBookSide = dexMarket?.info.asks;
+
+    const memory = createTempMemoryAccount(
+        instructions,
+        wallet.publicKey,
+        signers
+    );
 
     instructions.push(
         repayInstruction(
@@ -215,7 +233,10 @@ export const repay = async (
             ourMintDepositAccount,
             marketReserve?.info.liquiditySupply,
             marketAuthority,
-            marketReserve?.pubkey
+            marketReserve?.pubkey,
+            dexMarket.pubkey,
+            dexOrderBookSide,
+            memory
         )
     );
 

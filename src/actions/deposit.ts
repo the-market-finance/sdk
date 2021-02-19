@@ -260,26 +260,21 @@ export const deposit = async (
         );
     }
 
-    try {
-        let tx = await sendTransaction(
-            connection,
-            wallet,
-            instructions.concat(cleanupInstructions),
-            signers,
-            true,
-            sendMessageCallback
-        );
+    let tx = await sendTransaction(
+        connection,
+        wallet,
+        instructions.concat(cleanupInstructions),
+        signers,
+        true,
+        sendMessageCallback
+    );
 
 
-        sendMessageCallback({
-            message: "Funds deposited.",
-            type: "success",
-            description: `Transaction - ${tx.slice(0,4)}...${tx.slice(-4)}`,
-        });
-    } catch(e) {
-        // TODO:
-        throw new Error(`into transaction error => ${e}`);
-    }
+    sendMessageCallback({
+        message: "Funds deposited.",
+        type: "success",
+        description: `Transaction - ${tx.slice(0,4)}...${tx.slice(-4)}`,
+    });
 };
 
 

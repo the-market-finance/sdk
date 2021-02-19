@@ -444,23 +444,19 @@ export const borrow = async (
             marketReserve?.pubkey
         )
     );
-    try {
-        let tx = await sendTransaction(
-            connection,
-            wallet,
-            instructions.concat(cleanupInstructions),
-            signers,
-            true,
-            sendMessageCallback
-        );
 
-        sendMessageCallback({
-            message: "Funds borrowed.",
-            type: "success",
-            description: `Transaction - ${tx.slice(0, 4)}...${tx.slice(-4)}`,
-        });
-    } catch (e) {
-        // TODO:
-        throw new Error(`into transaction error => ${e}`);
-    }
+    let tx = await sendTransaction(
+        connection,
+        wallet,
+        instructions.concat(cleanupInstructions),
+        signers,
+        true,
+        sendMessageCallback
+    );
+
+    sendMessageCallback({
+        message: "Funds borrowed.",
+        type: "success",
+        description: `Transaction - ${tx.slice(0, 4)}...${tx.slice(-4)}`,
+    });
 };

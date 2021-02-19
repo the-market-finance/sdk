@@ -213,24 +213,18 @@ export const withdraw = async (
         )
     );
 
+    let tx = await sendTransaction(
+        connection,
+        wallet,
+        instructions.concat(cleanupInstructions),
+        signers,
+        true,
+        (msg) => sendMessageCallback(msg)
+    );
 
-    try {
-        let tx = await sendTransaction(
-            connection,
-            wallet,
-            instructions.concat(cleanupInstructions),
-            signers,
-            true,
-            (msg) => sendMessageCallback(msg)
-        );
-
-        sendMessageCallback({
-            message: "Funds withdraw.",
-            type: "success",
-            description: `Transaction - ${tx.slice(0, 4)}...${tx.slice(-4)}`,
-        });
-    } catch (e){
-        // TODO:
-        throw new Error(`into transaction error => ${e}`);
-    }
+    sendMessageCallback({
+        message: "Funds withdraw.",
+        type: "success",
+        description: `Transaction - ${tx.slice(0, 4)}...${tx.slice(-4)}`,
+    });
 };
