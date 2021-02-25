@@ -199,22 +199,22 @@ export const repay = async (
         programId
     );
     //fetch dex market area
-    // const dexMarketAddress = repayReserve.info.dexMarket
-    //
-    //
-    // const dexMarket = await cache.query(connection, dexMarketAddress, DexMarketParser);
-    //
-    // if (!dexMarket) {
-    //     throw new Error(`Dex market doesn't exist.`);
-    // }
-    //
-    // const dexOrderBookSide = dexMarket?.info.asks;
-    //
-    // const memory = createTempMemoryAccount(
-    //     instructions,
-    //     wallet.publicKey,
-    //     signers
-    // );
+    const dexMarketAddress = repayReserve.info.dexMarket
+
+
+    const dexMarket = await cache.query(connection, dexMarketAddress, DexMarketParser);
+
+    if (!dexMarket) {
+        throw new Error(`Dex market doesn't exist.`);
+    }
+
+    const dexOrderBookSide = dexMarket?.info.asks;
+
+    const memory = createTempMemoryAccount(
+        instructions,
+        wallet.publicKey,
+        signers
+    );
 
     instructions.push(
         repayInstruction(
@@ -234,9 +234,9 @@ export const repay = async (
             marketReserve?.info.liquiditySupply,
             marketAuthority,
             marketReserve?.pubkey,
-            // dexMarket.pubkey,
-            // dexOrderBookSide,
-            // memory
+            dexMarket.pubkey,
+            dexOrderBookSide,
+            memory
         )
     );
 

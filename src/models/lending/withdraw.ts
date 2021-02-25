@@ -59,9 +59,9 @@ export const withdrawInstruction = (
         {pubkey: marketAuthority, isSigner: false, isWritable: false},
         {pubkey: marketAddress, isSigner: false, isWritable: false},
         // + 3 param for withdraw and repay
-        // {pubkey: dexMarket!, isSigner: false, isWritable: false},
-        // {pubkey: dexOrderBookSide!, isSigner: false, isWritable: false},
-        // {pubkey: memory!, isSigner: false, isWritable: false},
+        {pubkey: dexMarket!, isSigner: false, isWritable: false},
+        {pubkey: dexOrderBookSide!, isSigner: false, isWritable: false},
+        {pubkey: memory!, isSigner: false, isWritable: false},
 
     )
   }
