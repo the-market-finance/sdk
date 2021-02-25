@@ -176,22 +176,22 @@ export const withdraw = async (
     );
 
     //fetch dex market area
-    const dexMarketAddress = reserve.dexMarket
-
-
-    const dexMarket = await cache.query(connection, dexMarketAddress, DexMarketParser);
-
-    if (!dexMarket) {
-        throw new Error(`Dex market doesn't exist.`);
-    }
-
-    const dexOrderBookSide = dexMarket?.info.asks;
-
-    const memory = createTempMemoryAccount(
-        instructions,
-        wallet.publicKey,
-        signers
-    );
+    // const dexMarketAddress = reserve.dexMarket
+    //
+    //
+    // const dexMarket = await cache.query(connection, dexMarketAddress, DexMarketParser);
+    //
+    // if (!dexMarket) {
+    //     throw new Error(`Dex market doesn't exist.`);
+    // }
+    //
+    // const dexOrderBookSide = dexMarket?.info.asks;
+    //
+    // const memory = createTempMemoryAccount(
+    //     instructions,
+    //     wallet.publicKey,
+    //     signers
+    // );
 
     instructions.push(
         withdrawInstruction(
@@ -207,9 +207,9 @@ export const withdraw = async (
             marketReserve?.info.liquiditySupply,
             marketAuthority,
             marketReserve?.pubkey,
-            dexMarket.pubkey,
-            dexOrderBookSide,
-            memory
+            // dexMarket.pubkey,
+            // dexOrderBookSide,
+            // memory
         )
     );
 
