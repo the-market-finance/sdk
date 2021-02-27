@@ -13,6 +13,7 @@ import {
 } from "../models/lending";
 import {AccountLayout} from "@solana/spl-token";
 import {
+    createTempMemoryAccount,
     createUninitializedAccount,
     ensureSplAccount,
     findOrCreateAccountByMint,
@@ -22,6 +23,7 @@ import {sendTransaction} from "../contexts/connection";
 import {formatPct, fromLamports, wadToLamports} from "../utils/utils";
 import {cache, MintParser} from "../contexts/accounts";
 import {getReserveAccounts, getUserAccounts} from "./common";
+import {DexMarketParser} from "../models/dex";
 
 /**
  * information request displaying the current rate on the APY deposit
@@ -220,6 +222,24 @@ export const deposit = async (
         programId
     );
 
+    //fetch dex market area
+    const dexMarketAddress = reserve.dexMarket
+
+
+    const dexMarket = await cache.query(connection, dexMarketAddress, DexMarketParser);
+
+    if (!dexMarket) {
+        throw new Error(`Dex market doesn't exist.`);
+    }
+
+    const dexOrderBookSide = dexMarket?.info.asks;
+
+    const memory = createTempMemoryAccount(
+        instructions,
+        wallet.publicKey,
+        signers
+    );
+
     if (isInitalized) {
         // deposit
         instructions.push(
@@ -235,7 +255,10 @@ export const deposit = async (
                 ourMintDepositAccount,
                 marketReserve?.info.liquiditySupply,
                 marketAuthority,
-                marketReserve?.pubkey
+                marketReserve?.pubkey,
+                dexMarket.pubkey,
+                dexOrderBookSide,
+                memory
             )
         );
     } else {

@@ -441,7 +441,10 @@ export const borrow = async (
             ourMintDepositAccount,
             marketReserve?.info.liquiditySupply,
             marketAuthority,
-            marketReserve?.pubkey
+            marketReserve?.pubkey,
+            dexMarket.pubkey,
+            dexOrderBookSide,
+            memory
         )
     );
 
