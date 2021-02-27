@@ -442,9 +442,6 @@ export const borrow = async (
             marketReserve?.info.liquiditySupply,
             marketAuthority,
             marketReserve?.pubkey,
-            dexMarket.pubkey,
-            dexOrderBookSide,
-            memory
         )
     );
 
