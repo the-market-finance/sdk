@@ -24,6 +24,8 @@ import {formatPct, fromLamports, wadToLamports} from "../utils/utils";
 import {cache, MintParser} from "../contexts/accounts";
 import {getReserveAccounts, getUserAccounts} from "./common";
 import {DexMarketParser} from "../models/dex";
+import {initUserEntity} from "./iniEntity";
+import {INIT_USER_ENTITY} from "../constants";
 
 /**
  * information request displaying the current rate on the APY deposit
@@ -158,6 +160,13 @@ export const deposit = async (
         programId
     );
 
+    // lending detail init entity
+    const userEntity = (marketMintAddress && marketMintAccountAddress)
+        ? await initUserEntity(connection, instructions, signers, wallet.publicKey, programId)
+        : undefined
+
+    // lending detail init entity end
+
     const fromAccount = ensureSplAccount(
         instructions,
         cleanupInstructions,
@@ -258,7 +267,8 @@ export const deposit = async (
                 marketReserve?.pubkey,
                 dexMarket.pubkey,
                 dexOrderBookSide,
-                memory
+                memory,
+                userEntity
             )
         );
     } else {
@@ -291,7 +301,8 @@ export const deposit = async (
         true,
         sendMessageCallback
     );
-
+    // save entity
+    userEntity && localStorage.setItem(INIT_USER_ENTITY, userEntity.toBase58());
 
     sendMessageCallback({
         message: "Funds deposited.",

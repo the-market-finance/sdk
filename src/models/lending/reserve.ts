@@ -54,7 +54,7 @@ export const LendingReserveLayout: typeof BufferLayout.Structure = BufferLayout.
 );
 
 export const isLendingReserve = (info: AccountInfo<Buffer>) => {
-    return info.data.length === LendingReserveLayout.span;
+    return info.data.length === LendingReserveLayout.span || info.data.length === 300;
 };
 
 export interface LendingReserve {

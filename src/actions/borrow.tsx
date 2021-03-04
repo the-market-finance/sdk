@@ -12,7 +12,7 @@ import {
     LendingReserveParser, reserveMarketCap
 } from "../models/lending";
 import {AccountLayout, MintInfo, MintLayout, Token} from "@solana/spl-token";
-import {TOKEN_PROGRAM_ID} from "../constants";
+import {INIT_USER_ENTITY, TOKEN_PROGRAM_ID} from "../constants";
 import {
     createTempMemoryAccount,
     createUninitializedAccount,
@@ -34,6 +34,7 @@ import {formatNumber, formatPct, fromLamports, toLamports} from "../utils/utils"
 import {sendTransaction} from "../contexts/connection";
 import {DexMarketParser} from "../models/dex";
 import {getReserveAccounts, getUserAccounts} from "./common";
+import {initUserEntity} from "./iniEntity";
 
 
 /**
@@ -344,6 +345,13 @@ export const borrow = async (
         fromLamports = amountLamports;
     }
 
+    // lending detail init entity
+    const userEntity = (marketMintAddress && marketMintAccountAddress)
+        ? await initUserEntity(connection, instructions, signers, wallet.publicKey, programId)
+        : undefined
+
+    // lending detail init entity end
+
     const fromAccount = ensureSplAccount(
         instructions,
         cleanupInstructions,
@@ -442,6 +450,7 @@ export const borrow = async (
             marketReserve?.info.liquiditySupply,
             marketAuthority,
             marketReserve?.pubkey,
+            userEntity
         )
     );
 
@@ -453,6 +462,9 @@ export const borrow = async (
         true,
         sendMessageCallback
     );
+
+    // save entity
+    userEntity && localStorage.setItem(INIT_USER_ENTITY, userEntity.toBase58());
 
     sendMessageCallback({
         message: "Funds borrowed.",

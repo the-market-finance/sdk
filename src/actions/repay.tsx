@@ -8,13 +8,14 @@ import {
 import {isLendingReserve, LendingObligationParser, LendingReserve, LendingReserveParser} from "../models/lending";
 import {repayInstruction} from "../models/lending/repay";
 import {AccountLayout, Token} from "@solana/spl-token";
-import {TOKEN_PROGRAM_ID} from "../constants";
+import {INIT_USER_ENTITY, TOKEN_PROGRAM_ID} from "../constants";
 import {createTempMemoryAccount, findOrCreateAccountByMint} from "./account";
 import {cache, MintParser, ParsedAccount} from "../contexts/accounts";
 import {sendTransaction} from "../contexts/connection";
 import {fromLamports, wadToLamports} from "../utils/utils";
 import {getReserveAccounts, getUserAccounts} from "./common";
 import {DexMarketParser} from "../models/dex";
+import {initUserEntity} from "./iniEntity";
 
 
 
@@ -198,6 +199,14 @@ export const repay = async (
         marketReserve?.info ? [ marketReserve.info.lendingMarket.toBuffer()] : [], // which account should be authority for market
         programId
     );
+
+    // lending detail init entity
+    const userEntity = (marketMintAddress && marketMintAccountAddress)
+        ? await initUserEntity(connection, instructions, signers, wallet.publicKey, programId)
+        : undefined
+
+    // lending detail init entity end
+
     //fetch dex market area
     const dexMarketAddress = repayReserve.info.dexMarket
 
@@ -236,7 +245,8 @@ export const repay = async (
             marketReserve?.pubkey,
             dexMarket.pubkey,
             dexOrderBookSide,
-            memory
+            memory,
+            userEntity
         )
     );
 
@@ -248,6 +258,9 @@ export const repay = async (
         true,
         sendMessageCallback
     );
+
+    // save entity
+    userEntity && localStorage.setItem(INIT_USER_ENTITY, userEntity.toBase58());
 
     sendMessageCallback({
         message: "Funds repaid.",

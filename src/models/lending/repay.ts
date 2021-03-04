@@ -44,6 +44,7 @@ export const repayInstruction = (
   dexMarket?: PublicKey,
   dexOrderBookSide?: PublicKey,
   memory?: PublicKey,
+  userEntity?:PublicKey
 ): TransactionInstruction => {
   const dataLayout = BufferLayout.struct([
     BufferLayout.u8("instruction"),
@@ -93,6 +94,7 @@ export const repayInstruction = (
         {pubkey: dexMarket!, isSigner: false, isWritable: false},
         {pubkey: dexOrderBookSide!, isSigner: false, isWritable: false},
         {pubkey: memory!, isSigner: false, isWritable: false},
+        {pubkey: userEntity!, isSigner: false, isWritable: false},
 
     )
   }

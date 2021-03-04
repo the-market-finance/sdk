@@ -7,7 +7,8 @@ export const WRAPPED_SOL_MINT = new PublicKey(
 export let TOKEN_PROGRAM_ID = new PublicKey(
   "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
 );
-
+// custom lending init account for storage
+export let INIT_USER_ENTITY = 'initPkEntity'
 
 // swap data
 let SWAP_PROGRAM_ID = new PublicKey("9qvG1zUp8xF1Bi4m6UdRNby1BAAuaDrUxSpv4CmRRMjL");

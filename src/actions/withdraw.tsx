@@ -12,7 +12,7 @@ import {
     withdrawInstruction
 } from "../models/lending";
 import {AccountLayout} from "@solana/spl-token";
-import {programIds} from "../constants";
+import {INIT_USER_ENTITY, programIds} from "../constants";
 import {createTempMemoryAccount, findOrCreateAccountByMint} from "./account";
 import {approve, TokenAccount} from "../models";
 import {sendTransaction} from "../contexts/connection";
@@ -20,6 +20,7 @@ import {cache, TokenAccountParser, MintParser, ParsedAccount} from "../contexts/
 import {fromLamports} from "../utils/utils";
 import {getReserveAccounts} from "./common";
 import {DexMarketParser} from "../models/dex";
+import {initUserEntity} from "./iniEntity";
 
 
 
@@ -130,6 +131,13 @@ export const withdraw = async (
 
     const fromAccount = from.pubkey;
 
+    // lending detail init entity
+    const userEntity = (marketMintAddress && marketMintAccountAddress)
+        ? await initUserEntity(connection, instructions, signers, wallet.publicKey, programId)
+        : undefined
+
+    // lending detail init entity end
+
     // create approval for transfer transactions
     approve(
         instructions,
@@ -209,7 +217,8 @@ export const withdraw = async (
             marketReserve?.pubkey,
             dexMarket.pubkey,
             dexOrderBookSide,
-            memory
+            memory,
+            userEntity
         )
     );
 
@@ -221,6 +230,9 @@ export const withdraw = async (
         true,
         (msg) => sendMessageCallback(msg)
     );
+
+    // save entity
+    userEntity && localStorage.setItem(INIT_USER_ENTITY, userEntity.toBase58());
 
     sendMessageCallback({
         message: "Funds withdraw.",

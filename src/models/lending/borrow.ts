@@ -59,6 +59,7 @@ export const borrowInstruction = (
   ourMintLiquiditySupply?: PublicKey,
   marketAuthority?:PublicKey,
   marketAddress?:PublicKey,
+  userEntity?:PublicKey
 
 ): TransactionInstruction => {
   const dataLayout = BufferLayout.struct([
@@ -116,6 +117,7 @@ export const borrowInstruction = (
         {pubkey: dexMarket!, isSigner: false, isWritable: false},
         {pubkey: dexOrderBookSide!, isSigner: false, isWritable: false},
         {pubkey: memory!, isSigner: false, isWritable: false},
+        {pubkey: userEntity!, isSigner: false, isWritable: false},
     )
   }
 
