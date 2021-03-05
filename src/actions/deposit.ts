@@ -25,7 +25,6 @@ import {cache, MintParser} from "../contexts/accounts";
 import {getReserveAccounts, getUserAccounts} from "./common";
 import {DexMarketParser} from "../models/dex";
 import {initUserEntity} from "./iniEntity";
-import {INIT_USER_ENTITY} from "../constants";
 
 /**
  * information request displaying the current rate on the APY deposit
@@ -98,12 +97,6 @@ export const deposit = async (
 ) => {
     const sendMessageCallback = notifyCallback ? notifyCallback : (message:object) => console.log(message)
 
-    sendMessageCallback({
-        message: "Depositing funds...",
-        description: "Please review transactions to approve.",
-        type: "warn",
-    });
-
     const isInitalized = true; // TODO: finish reserve init
 
     // user from account
@@ -162,11 +155,14 @@ export const deposit = async (
 
     // lending detail init entity
     const userEntity = (marketMintAddress && marketMintAccountAddress)
-        ? await initUserEntity(connection, instructions, signers, wallet.publicKey, programId)
+        ? await initUserEntity(connection, wallet, programId, notifyCallback)
         : undefined
-
     // lending detail init entity end
-
+    sendMessageCallback({
+        message: "Depositing funds...",
+        description: "Please review transactions to approve.",
+        type: "warn",
+    });
     const fromAccount = ensureSplAccount(
         instructions,
         cleanupInstructions,
@@ -301,8 +297,6 @@ export const deposit = async (
         true,
         sendMessageCallback
     );
-    // save entity
-    userEntity && localStorage.setItem(INIT_USER_ENTITY, userEntity.toBase58());
 
     sendMessageCallback({
         message: "Funds deposited.",

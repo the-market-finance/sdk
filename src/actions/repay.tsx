@@ -8,7 +8,7 @@ import {
 import {isLendingReserve, LendingObligationParser, LendingReserve, LendingReserveParser} from "../models/lending";
 import {repayInstruction} from "../models/lending/repay";
 import {AccountLayout, Token} from "@solana/spl-token";
-import {INIT_USER_ENTITY, TOKEN_PROGRAM_ID} from "../constants";
+import {TOKEN_PROGRAM_ID} from "../constants";
 import {createTempMemoryAccount, findOrCreateAccountByMint} from "./account";
 import {cache, MintParser, ParsedAccount} from "../contexts/accounts";
 import {sendTransaction} from "../contexts/connection";
@@ -47,11 +47,6 @@ export const repay = async (
     marketMintAccountAddress?: string
 ) => {
     const sendMessageCallback = notifyCallback ? notifyCallback : (message: object) => console.log(message)
-    sendMessageCallback({
-        message: "Repaing funds...",
-        description: "Please review transactions to approve.",
-        type: "warn",
-    });
     // treatment collateralAddress
     const collateralId = typeof collateralAddress === "string" ? collateralAddress : collateralAddress?.toBase58();
     // fetch collateralReserve account(withdrawReserve)
@@ -202,11 +197,14 @@ export const repay = async (
 
     // lending detail init entity
     const userEntity = (marketMintAddress && marketMintAccountAddress)
-        ? await initUserEntity(connection, instructions, signers, wallet.publicKey, programId)
+        ? await initUserEntity(connection, wallet, programId, notifyCallback)
         : undefined
-
     // lending detail init entity end
-
+    sendMessageCallback({
+        message: "Repaing funds...",
+        description: "Please review transactions to approve.",
+        type: "warn",
+    });
     //fetch dex market area
     const dexMarketAddress = repayReserve.info.dexMarket
 
@@ -258,9 +256,6 @@ export const repay = async (
         true,
         sendMessageCallback
     );
-
-    // save entity
-    userEntity && localStorage.setItem(INIT_USER_ENTITY, userEntity.toBase58());
 
     sendMessageCallback({
         message: "Funds repaid.",

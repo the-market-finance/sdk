@@ -12,7 +12,7 @@ import {
     LendingReserveParser, reserveMarketCap
 } from "../models/lending";
 import {AccountLayout, MintInfo, MintLayout, Token} from "@solana/spl-token";
-import {INIT_USER_ENTITY, TOKEN_PROGRAM_ID} from "../constants";
+import {TOKEN_PROGRAM_ID} from "../constants";
 import {
     createTempMemoryAccount,
     createUninitializedAccount,
@@ -161,12 +161,6 @@ export const borrow = async (
 ) => {
 
     const sendMessageCallback = notifyCallback ? notifyCallback : (message: object) => console.log(message)
-    sendMessageCallback({
-        message: "Borrowing funds...",
-        description: "Please review transactions to approve.",
-        type: "warn",
-    });
-
     // treatment collateralAddress
     const collateralId = typeof collateralAddress === "string" ? collateralAddress : collateralAddress?.toBase58();
     // fetch from
@@ -208,6 +202,17 @@ export const borrow = async (
 
     // set default amount type
     const amountType: BorrowAmountType = 0;
+
+    // lending detail init entity
+    const userEntity = (marketMintAddress && marketMintAccountAddress)
+        ? await initUserEntity(connection, wallet, programId, notifyCallback)
+        : undefined
+    // lending detail init entity end
+    sendMessageCallback({
+        message: "Borrowing funds...",
+        description: "Please review transactions to approve.",
+        type: "warn",
+    });
 
 
     //fetch obligations
@@ -345,13 +350,6 @@ export const borrow = async (
         fromLamports = amountLamports;
     }
 
-    // lending detail init entity
-    const userEntity = (marketMintAddress && marketMintAccountAddress)
-        ? await initUserEntity(connection, instructions, signers, wallet.publicKey, programId)
-        : undefined
-
-    // lending detail init entity end
-
     const fromAccount = ensureSplAccount(
         instructions,
         cleanupInstructions,
@@ -462,9 +460,6 @@ export const borrow = async (
         true,
         sendMessageCallback
     );
-
-    // save entity
-    userEntity && localStorage.setItem(INIT_USER_ENTITY, userEntity.toBase58());
 
     sendMessageCallback({
         message: "Funds borrowed.",

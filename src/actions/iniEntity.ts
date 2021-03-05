@@ -5,11 +5,12 @@ import {
     Connection,
     PublicKey,
     SystemProgram,
-    SYSVAR_CLOCK_PUBKEY, SYSVAR_RENT_PUBKEY,
+    SYSVAR_CLOCK_PUBKEY, SYSVAR_RENT_PUBKEY, Transaction,
     TransactionInstruction
 } from "@solana/web3.js";
 import {LendingInstruction} from "../models/lending";
 import {INIT_USER_ENTITY} from "../constants";
+import {sendTransaction} from "../contexts/connection";
 
 const initUserLendingLayout = BufferLayout.struct([
     BufferLayout.blob(73),
@@ -75,18 +76,27 @@ export const createInitEntityAccountInstructions = (
     });
 };
 export const initUserEntity = async (
-    connection:Connection,
-    instructions: TransactionInstruction[],
-    signers: Account[],
-    payer:PublicKey,
-    programId:PublicKey
+    connection: Connection,
+    wallet: any,
+    programId: PublicKey,
+    notifyCallback?: (message: object) => void | any,
 ) => {
-    let userEntity:PublicKey;
-    try{
+    const sendMessageCallback = notifyCallback ? notifyCallback : (message: object) => console.log(message)
+    let userEntity: PublicKey;
+    try {
         userEntity = new PublicKey(localStorage.getItem(INIT_USER_ENTITY) as string)
-    } catch(e){
+    } catch (e) {
         console.log('user entity is invalid error -> ', e.message);
-        userEntity = await createInitUserAccount(connection, instructions, payer, signers, programId);
+        sendMessageCallback({
+            message: "User entity initializing...",
+            type: "warn",
+            description: "Please review transactions to approve.",
+        });
+        const signers: Account[] = [];
+        const instructions: TransactionInstruction[] = [];
+        const cleanupInstructions: TransactionInstruction[] = [];
+        userEntity = await createInitUserAccount(connection, instructions, wallet.publicKey, signers, programId);
+
         instructions.push(
             createInitEntityAccountInstructions(
                 userEntity,
@@ -94,6 +104,29 @@ export const initUserEntity = async (
             )
         );
 
+        try {
+            const tx = await sendTransaction(
+                connection,
+                wallet,
+                instructions.concat(cleanupInstructions),
+                signers,
+                true,
+            );
+            // save entity
+            userEntity && localStorage.setItem(INIT_USER_ENTITY, userEntity.toBase58());
+
+            sendMessageCallback({
+                message: "User entity initialized.",
+                type: "success",
+                description: `Transaction - ${tx.slice(0, 4)}...${tx.slice(-4)}`,
+            });
+        } catch (e) {
+            sendMessageCallback({
+                message: "Error in user entity initialized. (refresh this page later)",
+                type: "error",
+                description: e.message,
+            });
+        }
     }
     return userEntity;
 }

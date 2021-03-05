@@ -12,7 +12,7 @@ import {
     withdrawInstruction
 } from "../models/lending";
 import {AccountLayout} from "@solana/spl-token";
-import {INIT_USER_ENTITY, programIds} from "../constants";
+import {programIds} from "../constants";
 import {createTempMemoryAccount, findOrCreateAccountByMint} from "./account";
 import {approve, TokenAccount} from "../models";
 import {sendTransaction} from "../contexts/connection";
@@ -51,12 +51,6 @@ export const withdraw = async (
     marketMintAccountAddress?: string
 ) => {
     const sendMessageCallback = notifyCallback ? notifyCallback : (message: object) => console.log(message)
-    sendMessageCallback({
-        message: "Withdrawing funds...",
-        description: "Please review transactions to approve.",
-        type: "warn",
-    });
-
 
     // user from account
     const signers: Account[] = [];
@@ -133,11 +127,14 @@ export const withdraw = async (
 
     // lending detail init entity
     const userEntity = (marketMintAddress && marketMintAccountAddress)
-        ? await initUserEntity(connection, instructions, signers, wallet.publicKey, programId)
+        ? await initUserEntity(connection, wallet, programId, notifyCallback)
         : undefined
-
     // lending detail init entity end
-
+    sendMessageCallback({
+        message: "Withdrawing funds...",
+        description: "Please review transactions to approve.",
+        type: "warn",
+    });
     // create approval for transfer transactions
     approve(
         instructions,
@@ -230,9 +227,6 @@ export const withdraw = async (
         true,
         (msg) => sendMessageCallback(msg)
     );
-
-    // save entity
-    userEntity && localStorage.setItem(INIT_USER_ENTITY, userEntity.toBase58());
 
     sendMessageCallback({
         message: "Funds withdraw.",
