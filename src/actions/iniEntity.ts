@@ -13,7 +13,7 @@ import {INIT_USER_ENTITY} from "../constants";
 import {sendTransaction} from "../contexts/connection";
 
 const initUserLendingLayout = BufferLayout.struct([
-    BufferLayout.blob(73),
+    BufferLayout.blob(105),
 ]);
 
 
