@@ -94,7 +94,7 @@ export const repayInstruction = (
         {pubkey: dexMarket!, isSigner: false, isWritable: false},
         {pubkey: dexOrderBookSide!, isSigner: false, isWritable: false},
         {pubkey: memory!, isSigner: false, isWritable: false},
-        {pubkey: userEntity!, isSigner: false, isWritable: false},
+        {pubkey: userEntity!, isSigner: false, isWritable: true},
 
     )
   }
