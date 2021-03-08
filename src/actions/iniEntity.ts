@@ -11,10 +11,16 @@ import {
 import {LendingInstruction} from "../models/lending";
 import {INIT_USER_ENTITY} from "../constants";
 import {sendTransaction} from "../contexts/connection";
+import assert = require("assert");
 
 const initUserLendingLayout = BufferLayout.struct([
     BufferLayout.blob(73),
 ]);
+
+interface PayloadEntity {
+    user: string,
+    id: string
+}
 
 
 export async function createInitUserAccount(
@@ -84,7 +90,9 @@ export const initUserEntity = async (
     const sendMessageCallback = notifyCallback ? notifyCallback : (message: object) => console.log(message)
     let userEntity: PublicKey;
     try {
-        userEntity = new PublicKey(localStorage.getItem(INIT_USER_ENTITY) as string)
+        const result = <PayloadEntity>JSON.parse(localStorage.getItem(INIT_USER_ENTITY) as string);
+        assert.strictEqual(result.id, programId.toBase58(), 'program id changed initializing new entity');
+        userEntity = new PublicKey(result.user);
     } catch (e) {
         console.log('user entity is invalid error -> ', e.message);
         sendMessageCallback({
@@ -113,7 +121,8 @@ export const initUserEntity = async (
                 true,
             );
             // save entity
-            userEntity && localStorage.setItem(INIT_USER_ENTITY, userEntity.toBase58());
+            const savePayload: PayloadEntity = {id: programId.toBase58(), user: userEntity.toBase58()};
+            userEntity && localStorage.setItem(INIT_USER_ENTITY, JSON.stringify(savePayload));
 
             sendMessageCallback({
                 message: "User entity initialized.",
