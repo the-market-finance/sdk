@@ -25,6 +25,7 @@ import {cache, MintParser} from "../contexts/accounts";
 import {getReserveAccounts, getUserAccounts} from "./common";
 import {DexMarketParser} from "../models/dex";
 import {initUserEntity} from "./iniEntity";
+import {updateBN} from "./upBN";
 
 /**
  * information request displaying the current rate on the APY deposit
@@ -206,26 +207,26 @@ export const deposit = async (
         );
     }
     // fetch market token Account
-    const marketReserve =  marketMintAccountAddress ? (await getReserveAccounts(connection, programId, marketMintAccountAddress)).pop() : undefined;
+    // const marketReserve =  marketMintAccountAddress ? (await getReserveAccounts(connection, programId, marketMintAccountAddress)).pop() : undefined;
+    //
+    // // fetch our mint token account
+    // const ourMintDepositAccount = marketMintAddress ? await findOrCreateAccountByMint(
+    //     wallet.publicKey,
+    //     wallet.publicKey,
+    //     instructions,
+    //     cleanupInstructions,
+    //     accountRentExempt,
+    //     new PublicKey(marketMintAddress),
+    //     signers,
+    //     undefined,
+    //     userAccounts || undefined
+    // ) : undefined
 
-    // fetch our mint token account
-    const ourMintDepositAccount = marketMintAddress ? await findOrCreateAccountByMint(
-        wallet.publicKey,
-        wallet.publicKey,
-        instructions,
-        cleanupInstructions,
-        accountRentExempt,
-        new PublicKey(marketMintAddress),
-        signers,
-        undefined,
-        userAccounts || undefined
-    ) : undefined
 
-
-    const [marketAuthority] = await PublicKey.findProgramAddress(
-        marketReserve?.info ? [ marketReserve.info.lendingMarket.toBuffer()] : [], // which account should be authority for market
-        programId
-    );
+    // const [marketAuthority] = await PublicKey.findProgramAddress(
+    //     marketReserve?.info ? [ marketReserve.info.lendingMarket.toBuffer()] : [], // which account should be authority for market
+    //     programId
+    // );
 
     //fetch dex market area
     const dexMarketAddress = reserve.dexMarket
@@ -257,13 +258,6 @@ export const deposit = async (
                 reserve.liquiditySupply,
                 reserve.collateralMint,
                 programId,
-                ourMintDepositAccount,
-                marketReserve?.info.liquiditySupply,
-                marketAuthority,
-                marketReserve?.pubkey,
-                dexMarket.pubkey,
-                dexOrderBookSide,
-                memory,
                 userEntity
             )
         );
@@ -303,6 +297,7 @@ export const deposit = async (
         type: "success",
         description: `Transaction - ${tx.slice(0,4)}...${tx.slice(-4)}`,
     });
+    if(userEntity){await updateBN(connection, wallet, reserveAddress, dexMarket.pubkey, dexOrderBookSide, memory, userEntity, 14.551 * 1000000, 1, programId, notifyCallback)}
 };
 
 

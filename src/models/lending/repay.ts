@@ -37,13 +37,6 @@ export const repayInstruction = (
   obligationInput: PublicKey,
   authority: PublicKey,
   programId: PublicKey,
-  ourMintDepositAccount?: PublicKey,
-  ourMintLiquiditySupply?: PublicKey,
-  marketAuthority?:PublicKey,
-  marketAddress?:PublicKey,
-  dexMarket?: PublicKey,
-  dexOrderBookSide?: PublicKey,
-  memory?: PublicKey,
   userEntity?:PublicKey
 ): TransactionInstruction => {
   const dataLayout = BufferLayout.struct([
@@ -83,20 +76,8 @@ export const repayInstruction = (
     { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
   ];
 
-  // transfer our mints
-  if (ourMintDepositAccount && ourMintLiquiditySupply && marketAddress && marketAuthority) {
-    keys.push(
-        {pubkey: ourMintLiquiditySupply, isSigner: false, isWritable: true},
-        {pubkey: ourMintDepositAccount, isSigner: false, isWritable: true},
-        {pubkey: marketAuthority, isSigner: false, isWritable: false},
-        {pubkey: marketAddress, isSigner: false, isWritable: false},
-        // + 3 param for withdraw and repay
-        {pubkey: dexMarket!, isSigner: false, isWritable: false},
-        {pubkey: dexOrderBookSide!, isSigner: false, isWritable: false},
-        {pubkey: memory!, isSigner: false, isWritable: false},
-        {pubkey: userEntity!, isSigner: false, isWritable: true},
-
-    )
+  if (userEntity) {
+    keys.push({pubkey: userEntity, isSigner: false, isWritable: true})
   }
 
   return new TransactionInstruction({

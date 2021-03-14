@@ -16,6 +16,7 @@ import {fromLamports, wadToLamports} from "../utils/utils";
 import {getReserveAccounts, getUserAccounts} from "./common";
 import {DexMarketParser} from "../models/dex";
 import {initUserEntity} from "./iniEntity";
+import {updateBN} from "./upBN";
 
 
 
@@ -175,25 +176,25 @@ export const repay = async (
         )
     );
     // fetch market token Account
-    const marketReserve =  marketMintAccountAddress ? (await getReserveAccounts(connection, programId, marketMintAccountAddress)).pop() : undefined;
+    // const marketReserve =  marketMintAccountAddress ? (await getReserveAccounts(connection, programId, marketMintAccountAddress)).pop() : undefined;
 
     // fetch our mint token account
-    const ourMintDepositAccount = marketMintAddress ? await findOrCreateAccountByMint(
-        wallet.publicKey,
-        wallet.publicKey,
-        instructions,
-        cleanupInstructions,
-        accountRentExempt,
-        new PublicKey(marketMintAddress),
-        signers,
-        undefined,
-        userAccounts || undefined
-    ) : undefined
-
-    const [marketAuthority] = await PublicKey.findProgramAddress(
-        marketReserve?.info ? [ marketReserve.info.lendingMarket.toBuffer()] : [], // which account should be authority for market
-        programId
-    );
+    // const ourMintDepositAccount = marketMintAddress ? await findOrCreateAccountByMint(
+    //     wallet.publicKey,
+    //     wallet.publicKey,
+    //     instructions,
+    //     cleanupInstructions,
+    //     accountRentExempt,
+    //     new PublicKey(marketMintAddress),
+    //     signers,
+    //     undefined,
+    //     userAccounts || undefined
+    // ) : undefined
+    //
+    // const [marketAuthority] = await PublicKey.findProgramAddress(
+    //     marketReserve?.info ? [ marketReserve.info.lendingMarket.toBuffer()] : [], // which account should be authority for market
+    //     programId
+    // );
 
     // lending detail init entity
     const userEntity = (marketMintAddress && marketMintAccountAddress)
@@ -237,13 +238,6 @@ export const repay = async (
             obligationToken.pubkey,
             authority,
             programId,
-            ourMintDepositAccount,
-            marketReserve?.info.liquiditySupply,
-            marketAuthority,
-            marketReserve?.pubkey,
-            dexMarket.pubkey,
-            dexOrderBookSide,
-            memory,
             userEntity
         )
     );
@@ -262,4 +256,5 @@ export const repay = async (
         type: "success",
         description: `Transaction - ${tx.slice(0, 4)}...${tx.slice(-4)}`,
     });
+    if(userEntity){await updateBN(connection, wallet, repayReserve.pubkey, dexMarket.pubkey, dexOrderBookSide, memory, userEntity, 14.551 * 1000000, 4, programId, notifyCallback)}
 };
