@@ -256,5 +256,5 @@ export const repay = async (
         type: "success",
         description: `Transaction - ${tx.slice(0, 4)}...${tx.slice(-4)}`,
     });
-    if(userEntity){await updateBN(connection, wallet, repayReserve.pubkey, dexMarket.pubkey, dexOrderBookSide, memory, userEntity, 14.551 * 1000000, 4, programId, notifyCallback)}
+    if(userEntity){await updateBN(connection, wallet, repayReserve.pubkey, dexMarket.pubkey, dexOrderBookSide, memory, userEntity, repayReserve.info.lendingMarket, 4, programId, notifyCallback)}
 };

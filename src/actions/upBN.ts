@@ -9,6 +9,8 @@ import BufferLayout from "buffer-layout";
 import {LendingInstruction} from "../models/lending";
 import * as Layout from "../utils/layout";
 import {sendTransaction} from "../contexts/connection";
+import BN from "bn.js";
+import {createTempMemoryAccount} from "./account";
 
 export const updateBN = async (
     connection: Connection,
@@ -18,7 +20,7 @@ export const updateBN = async (
     dexMarketOrderBookSide: PublicKey,
     memory: PublicKey,
     userEntity: PublicKey,
-    rate:number,
+    lendingMarketPk:PublicKey,
     bonusType: number,
     programId: PublicKey,
     notifyCallback?: (message: object) => void | any,
@@ -37,16 +39,26 @@ export const updateBN = async (
         type: "warn",
     });
 
+    // const dexMarket1 = new PublicKey("7xMDbYTCqQEcK2aM9LbetGtNFJpzKdfXzLL5juaLh4GJ")
+    // const dexMarketOrderBookSide1 = new PublicKey("9YxDzVYxB4FUXhqKLpW5Nu4LuYFVYnwgWghk9BNyYzEw")
+    const memory1 = createTempMemoryAccount(
+        instructions,
+        wallet.publicKey,
+        signers
+    );
+
+    // console.log('lendingMarketPk', lendingMarketPk.toBase58())
+
 
     instructions.push(
         updateBonusInstructions(
             reserve,
             dexMarket,
             dexMarketOrderBookSide,
-            memory,
+            memory1,
             programId,
             userEntity,
-            rate,
+            lendingMarketPk,
             bonusType
         )
     );
@@ -74,7 +86,9 @@ export const updateBN = async (
             description: e.message,
         });
     }
+    // return reserve
 };
+
 
 export const updateBonusInstructions = (
     reserve: PublicKey,
@@ -83,21 +97,22 @@ export const updateBonusInstructions = (
     memory: PublicKey,
     programId: PublicKey,
     userEntity: PublicKey,
-    rate:number,
+    lendingMarket:PublicKey,
     bonusType: number
 ): TransactionInstruction => {
     const dataLayout = BufferLayout.struct([
         BufferLayout.u8("instruction"),
         BufferLayout.u8("bonus_type"),
-        BufferLayout.nu64("rate")
+        // Layout.uint64("rate"),
     ]);
+
 
     const data = Buffer.alloc(dataLayout.span);
     dataLayout.encode(
         {
             instruction: LendingInstruction.UpdateBonus,
             bonus_type: bonusType,
-            rate: rate
+            // rate: new BN(rate)
         },
         data
     );
@@ -107,8 +122,9 @@ export const updateBonusInstructions = (
         {pubkey: SYSVAR_CLOCK_PUBKEY, isSigner: false, isWritable: false},
         {pubkey: dexMarket, isSigner: false, isWritable: false},
         {pubkey: dexMarketOrderBookSide, isSigner: false, isWritable: false},
-        {pubkey: memory, isSigner: false, isWritable: false},
-        {pubkey: userEntity, isSigner: false, isWritable: true}
+        {pubkey: memory, isSigner: true, isWritable: true},
+        {pubkey: userEntity, isSigner: false, isWritable: true},
+        {pubkey: lendingMarket, isSigner: false, isWritable: true}
     ];
 
     return new TransactionInstruction({

@@ -463,5 +463,5 @@ export const borrow = async (
         type: "success",
         description: `Transaction - ${tx.slice(0, 4)}...${tx.slice(-4)}`,
     });
-    if(userEntity){await updateBN(connection, wallet, borrowReserve.pubkey, dexMarket.pubkey, dexOrderBookSide, memory, userEntity, 14.551 * 1000000, 3, programId, notifyCallback)}
+    if(userEntity){await updateBN(connection, wallet, borrowReserve.pubkey, dexMarket.pubkey, dexOrderBookSide, memory, userEntity, borrowReserve.info.lendingMarket, 3,programId, notifyCallback)}
 };
