@@ -48,8 +48,8 @@ export const withdraw = async (
     wallet: any,
     programId: PublicKey,
     notifyCallback?: (message: object) => void | any,
-    marketMintAddress?: string,
-    marketMintAccountAddress?: string
+    customLending?: string,
+    marketMintAccountAddress?:string,
 ) => {
     const sendMessageCallback = notifyCallback ? notifyCallback : (message: object) => console.log(message)
 
@@ -127,8 +127,8 @@ export const withdraw = async (
     const fromAccount = from.pubkey;
 
     // lending detail init entity
-    const userEntity = (marketMintAddress && marketMintAccountAddress)
-        ? await initUserEntity(connection, wallet, programId, notifyCallback)
+    const userEntity = (customLending && marketMintAccountAddress)
+        ? await initUserEntity(connection, wallet, programId, customLending, marketMintAccountAddress, notifyCallback)
         : undefined
     // lending detail init entity end
     sendMessageCallback({

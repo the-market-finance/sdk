@@ -93,7 +93,7 @@ export const deposit = async (
     wallet: any,
     programId: PublicKey,
     notifyCallback?: (message:object) => void | any,
-    marketMintAddress?: string,
+    customLending?: string,
     marketMintAccountAddress?:string,
 ) => {
     const sendMessageCallback = notifyCallback ? notifyCallback : (message:object) => console.log(message)
@@ -155,9 +155,10 @@ export const deposit = async (
     );
 
     // lending detail init entity
-    const userEntity = (marketMintAddress && marketMintAccountAddress)
-        ? await initUserEntity(connection, wallet, programId, notifyCallback)
+    const userEntity = (customLending && marketMintAccountAddress)
+        ? await initUserEntity(connection, wallet, programId, customLending, marketMintAccountAddress, notifyCallback)
         : undefined
+
     // lending detail init entity end
     sendMessageCallback({
         message: "Depositing funds...",

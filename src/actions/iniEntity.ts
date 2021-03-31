@@ -19,7 +19,8 @@ const initUserLendingLayout = BufferLayout.struct([
 
 interface PayloadEntity {
     user: string,
-    id: string
+    customLending: string,
+    marketMintAccountAddress: string
 }
 
 
@@ -85,13 +86,16 @@ export const initUserEntity = async (
     connection: Connection,
     wallet: any,
     programId: PublicKey,
+    customLending: string,
+    marketMintAccountAddress: string,
     notifyCallback?: (message: object) => void | any,
 ) => {
     const sendMessageCallback = notifyCallback ? notifyCallback : (message: object) => console.log(message)
     let userEntity: PublicKey;
     try {
         const result = <PayloadEntity>JSON.parse(localStorage.getItem(INIT_USER_ENTITY) as string);
-        assert.strictEqual(result.id, programId.toBase58(), 'program id changed initializing new entity');
+        assert.strictEqual(result.customLending, customLending, 'customLending changed initializing new entity');
+        assert.strictEqual(result.marketMintAccountAddress, marketMintAccountAddress, 'marketMintAccountAddress changed initializing new entity');
         userEntity = new PublicKey(result.user);
     } catch (e) {
         console.log('user entity is invalid error -> ', e.message);
@@ -121,7 +125,7 @@ export const initUserEntity = async (
                 true,
             );
             // save entity
-            const savePayload: PayloadEntity = {id: programId.toBase58(), user: userEntity.toBase58()};
+            const savePayload: PayloadEntity = {user: userEntity.toBase58(), customLending, marketMintAccountAddress};
             userEntity && localStorage.setItem(INIT_USER_ENTITY, JSON.stringify(savePayload));
 
             sendMessageCallback({
