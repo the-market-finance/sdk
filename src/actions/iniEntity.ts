@@ -14,7 +14,7 @@ import {sendTransaction} from "../contexts/connection";
 import assert = require("assert");
 
 const initUserLendingLayout = BufferLayout.struct([
-    BufferLayout.blob(105),
+    BufferLayout.blob(137),
 ]);
 
 interface PayloadEntity {
