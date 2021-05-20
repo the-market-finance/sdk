@@ -1,16 +1,10 @@
-import {
-    AccountInfo,
-    PublicKey,
-    SYSVAR_CLOCK_PUBKEY,
-    SYSVAR_RENT_PUBKEY,
-    TransactionInstruction,
-} from "@solana/web3.js";
+import {AccountInfo, PublicKey, SYSVAR_CLOCK_PUBKEY, SYSVAR_RENT_PUBKEY, TransactionInstruction,} from "@solana/web3.js";
 import BN from "bn.js";
 import * as BufferLayout from "buffer-layout";
-import { TOKEN_PROGRAM_ID } from "../../constants/ids";
-import { wadToLamports } from "../../utils/utils";
+import {TOKEN_PROGRAM_ID} from "../../constants/ids";
+import {wadToLamports} from "../../utils/utils";
 import * as Layout from "./../../utils/layout";
-import { LendingInstruction } from "./lending";
+import {LendingInstruction} from "./lending";
 
 export const LendingReserveLayout: typeof BufferLayout.Structure = BufferLayout.struct(
     [
@@ -50,6 +44,7 @@ export const LendingReserveLayout: typeof BufferLayout.Structure = BufferLayout.
 
         Layout.uint64("availableLiquidity"),
         Layout.uint64("collateralMintSupply"),
+        Layout.publicKey("feeAccount"),
     ]
 );
 
@@ -84,6 +79,7 @@ export interface LendingReserve {
 
     availableLiquidity: BN;
     collateralMintSupply: BN;
+    feeAccount: PublicKey;
 }
 
 export const LendingReserveParser = (
@@ -94,15 +90,13 @@ export const LendingReserveParser = (
     const data = LendingReserveLayout.decode(buffer);
     if (data.lastUpdateSlot.toNumber() === 0) return;
 
-    const details = {
+    return {
         pubkey: pubKey,
         account: {
             ...info,
         },
         info: data,
     };
-
-    return details;
 };
 
 export const initReserveInstruction = (
@@ -178,9 +172,7 @@ export const calculateUtilizationRatio = (reserve: LendingReserve) => {
 export const reserveMarketCap = (reserve?: LendingReserve) => {
     const available = reserve?.availableLiquidity.toNumber() || 0;
     const borrowed = wadToLamports(reserve?.borrowedLiquidityWad).toNumber();
-    const total = available + borrowed;
-
-    return total;
+    return available + borrowed;
 };
 
 export const collateralExchangeRate = (reserve?: LendingReserve) => {
