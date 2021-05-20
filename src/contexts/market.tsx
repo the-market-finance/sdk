@@ -79,7 +79,7 @@ export const simulateMarketOrderFill = (
   return cost;
 };
 
-const getMidPrice = (marketAddress?: string, mintAddress?: string) => {
+export const getMidPrice = (marketAddress?: string, mintAddress?: string) => {
   const SERUM_TOKEN = TOKEN_MINTS.find(
     (a) => a.address.toBase58() === mintAddress
   );

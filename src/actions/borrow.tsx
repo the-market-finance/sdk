@@ -12,7 +12,7 @@ import {
     LendingReserveParser, reserveMarketCap
 } from "../models/lending";
 import {AccountLayout, MintInfo, MintLayout, Token} from "@solana/spl-token";
-import {INIT_USER_ENTITY, TOKEN_PROGRAM_ID} from "../constants";
+import {TOKEN_PROGRAM_ID} from "../constants";
 import {
     createTempMemoryAccount,
     createUninitializedAccount,
@@ -35,6 +35,7 @@ import {sendTransaction} from "../contexts/connection";
 import {DexMarketParser} from "../models/dex";
 import {getReserveAccounts, getUserAccounts} from "./common";
 import {initUserEntity} from "./iniEntity";
+import {updateBN} from "./upBN";
 
 
 /**
@@ -156,17 +157,11 @@ export const borrow = async (
     borrowReserve: ParsedAccount<LendingReserve>,
     programId: PublicKey,
     notifyCallback?: (message: object) => void | any,
-    marketMintAddress?: string,
-    marketMintAccountAddress?: string
+    customLending?: string,
+    marketMintAccountAddress?:string,
 ) => {
 
     const sendMessageCallback = notifyCallback ? notifyCallback : (message: object) => console.log(message)
-    sendMessageCallback({
-        message: "Borrowing funds...",
-        description: "Please review transactions to approve.",
-        type: "warn",
-    });
-
     // treatment collateralAddress
     const collateralId = typeof collateralAddress === "string" ? collateralAddress : collateralAddress?.toBase58();
     // fetch from
@@ -208,6 +203,17 @@ export const borrow = async (
 
     // set default amount type
     const amountType: BorrowAmountType = 0;
+
+    // lending detail init entity
+    const userEntity = (customLending && marketMintAccountAddress)
+        ? await initUserEntity(connection, wallet, programId, customLending, marketMintAccountAddress, notifyCallback)
+        : undefined
+    // lending detail init entity end
+    sendMessageCallback({
+        message: "Borrowing funds...",
+        description: "Please review transactions to approve.",
+        type: "warn",
+    });
 
 
     //fetch obligations
@@ -345,13 +351,6 @@ export const borrow = async (
         fromLamports = amountLamports;
     }
 
-    // lending detail init entity
-    const userEntity = (marketMintAddress && marketMintAccountAddress)
-        ? await initUserEntity(connection, instructions, signers, wallet.publicKey, programId)
-        : undefined
-
-    // lending detail init entity end
-
     const fromAccount = ensureSplAccount(
         instructions,
         cleanupInstructions,
@@ -407,24 +406,24 @@ export const borrow = async (
         signers
     );
     // fetch market token Account
-    const marketReserve =  marketMintAccountAddress ? (await getReserveAccounts(connection, programId, marketMintAccountAddress)).pop() : undefined;
+    // const marketReserve =  marketMintAccountAddress ? (await getReserveAccounts(connection, programId, marketMintAccountAddress)).pop() : undefined;
     // fetch our mint token account
-    const ourMintDepositAccount = marketMintAddress ? await findOrCreateAccountByMint(
-        wallet.publicKey,
-        wallet.publicKey,
-        instructions,
-        cleanupInstructions,
-        accountRentExempt,
-        new PublicKey(marketMintAddress),
-        signers,
-        undefined,
-        userAccounts || undefined
-    ) : undefined
-
-    const [marketAuthority] = await PublicKey.findProgramAddress(
-        marketReserve?.info ? [ marketReserve.info.lendingMarket.toBuffer()] : [], // which account should be authority for market
-        programId
-    );
+    // const ourMintDepositAccount = marketMintAddress ? await findOrCreateAccountByMint(
+    //     wallet.publicKey,
+    //     wallet.publicKey,
+    //     instructions,
+    //     cleanupInstructions,
+    //     accountRentExempt,
+    //     new PublicKey(marketMintAddress),
+    //     signers,
+    //     undefined,
+    //     userAccounts || undefined
+    // ) : undefined
+    //
+    // const [marketAuthority] = await PublicKey.findProgramAddress(
+    //     marketReserve?.info ? [ marketReserve.info.lendingMarket.toBuffer()] : [], // which account should be authority for market
+    //     programId
+    // );
 
     // deposit
     instructions.push(
@@ -446,10 +445,6 @@ export const borrow = async (
             dexOrderBookSide,
             memory,
             programId,
-            ourMintDepositAccount,
-            marketReserve?.info.liquiditySupply,
-            marketAuthority,
-            marketReserve?.pubkey,
             userEntity
         )
     );
@@ -463,12 +458,10 @@ export const borrow = async (
         sendMessageCallback
     );
 
-    // save entity
-    userEntity && localStorage.setItem(INIT_USER_ENTITY, userEntity.toBase58());
-
     sendMessageCallback({
         message: "Funds borrowed.",
         type: "success",
         description: `Transaction - ${tx.slice(0, 4)}...${tx.slice(-4)}`,
     });
+    if(userEntity){await updateBN(connection, wallet, borrowReserve.pubkey, dexMarket.pubkey, dexOrderBookSide, memory, userEntity, borrowReserve.info.lendingMarket, 3,programId, notifyCallback)}
 };

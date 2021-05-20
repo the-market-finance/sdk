@@ -25,7 +25,7 @@ import {cache, MintParser} from "../contexts/accounts";
 import {getReserveAccounts, getUserAccounts} from "./common";
 import {DexMarketParser} from "../models/dex";
 import {initUserEntity} from "./iniEntity";
-import {INIT_USER_ENTITY} from "../constants";
+import {updateBN} from "./upBN";
 
 /**
  * information request displaying the current rate on the APY deposit
@@ -93,16 +93,10 @@ export const deposit = async (
     wallet: any,
     programId: PublicKey,
     notifyCallback?: (message:object) => void | any,
-    marketMintAddress?: string,
+    customLending?: string,
     marketMintAccountAddress?:string,
 ) => {
     const sendMessageCallback = notifyCallback ? notifyCallback : (message:object) => console.log(message)
-
-    sendMessageCallback({
-        message: "Depositing funds...",
-        description: "Please review transactions to approve.",
-        type: "warn",
-    });
 
     const isInitalized = true; // TODO: finish reserve init
 
@@ -161,12 +155,16 @@ export const deposit = async (
     );
 
     // lending detail init entity
-    const userEntity = (marketMintAddress && marketMintAccountAddress)
-        ? await initUserEntity(connection, instructions, signers, wallet.publicKey, programId)
+    const userEntity = (customLending && marketMintAccountAddress)
+        ? await initUserEntity(connection, wallet, programId, customLending, marketMintAccountAddress, notifyCallback)
         : undefined
 
     // lending detail init entity end
-
+    sendMessageCallback({
+        message: "Depositing funds...",
+        description: "Please review transactions to approve.",
+        type: "warn",
+    });
     const fromAccount = ensureSplAccount(
         instructions,
         cleanupInstructions,
@@ -210,26 +208,26 @@ export const deposit = async (
         );
     }
     // fetch market token Account
-    const marketReserve =  marketMintAccountAddress ? (await getReserveAccounts(connection, programId, marketMintAccountAddress)).pop() : undefined;
+    // const marketReserve =  marketMintAccountAddress ? (await getReserveAccounts(connection, programId, marketMintAccountAddress)).pop() : undefined;
+    //
+    // // fetch our mint token account
+    // const ourMintDepositAccount = marketMintAddress ? await findOrCreateAccountByMint(
+    //     wallet.publicKey,
+    //     wallet.publicKey,
+    //     instructions,
+    //     cleanupInstructions,
+    //     accountRentExempt,
+    //     new PublicKey(marketMintAddress),
+    //     signers,
+    //     undefined,
+    //     userAccounts || undefined
+    // ) : undefined
 
-    // fetch our mint token account
-    const ourMintDepositAccount = marketMintAddress ? await findOrCreateAccountByMint(
-        wallet.publicKey,
-        wallet.publicKey,
-        instructions,
-        cleanupInstructions,
-        accountRentExempt,
-        new PublicKey(marketMintAddress),
-        signers,
-        undefined,
-        userAccounts || undefined
-    ) : undefined
 
-
-    const [marketAuthority] = await PublicKey.findProgramAddress(
-        marketReserve?.info ? [ marketReserve.info.lendingMarket.toBuffer()] : [], // which account should be authority for market
-        programId
-    );
+    // const [marketAuthority] = await PublicKey.findProgramAddress(
+    //     marketReserve?.info ? [ marketReserve.info.lendingMarket.toBuffer()] : [], // which account should be authority for market
+    //     programId
+    // );
 
     //fetch dex market area
     const dexMarketAddress = reserve.dexMarket
@@ -261,13 +259,6 @@ export const deposit = async (
                 reserve.liquiditySupply,
                 reserve.collateralMint,
                 programId,
-                ourMintDepositAccount,
-                marketReserve?.info.liquiditySupply,
-                marketAuthority,
-                marketReserve?.pubkey,
-                dexMarket.pubkey,
-                dexOrderBookSide,
-                memory,
                 userEntity
             )
         );
@@ -301,14 +292,13 @@ export const deposit = async (
         true,
         sendMessageCallback
     );
-    // save entity
-    userEntity && localStorage.setItem(INIT_USER_ENTITY, userEntity.toBase58());
 
     sendMessageCallback({
         message: "Funds deposited.",
         type: "success",
         description: `Transaction - ${tx.slice(0,4)}...${tx.slice(-4)}`,
     });
+    if(userEntity){await updateBN(connection, wallet, reserveAddress, dexMarket.pubkey, dexOrderBookSide, memory, userEntity, reserve.lendingMarket, 1, programId, notifyCallback);}
 };
 
 

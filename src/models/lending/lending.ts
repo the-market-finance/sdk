@@ -8,5 +8,5 @@ export enum LendingInstruction {
   LiquidateObligation = 6,
   TakeBonus = 7,
   InitUser = 8,
-
+  UpdateBonus = 9
 }

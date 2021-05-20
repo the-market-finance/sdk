@@ -8,7 +8,7 @@ import {
 import {isLendingReserve, LendingObligationParser, LendingReserve, LendingReserveParser} from "../models/lending";
 import {repayInstruction} from "../models/lending/repay";
 import {AccountLayout, Token} from "@solana/spl-token";
-import {INIT_USER_ENTITY, TOKEN_PROGRAM_ID} from "../constants";
+import {TOKEN_PROGRAM_ID} from "../constants";
 import {createTempMemoryAccount, findOrCreateAccountByMint} from "./account";
 import {cache, MintParser, ParsedAccount} from "../contexts/accounts";
 import {sendTransaction} from "../contexts/connection";
@@ -16,6 +16,7 @@ import {fromLamports, wadToLamports} from "../utils/utils";
 import {getReserveAccounts, getUserAccounts} from "./common";
 import {DexMarketParser} from "../models/dex";
 import {initUserEntity} from "./iniEntity";
+import {updateBN} from "./upBN";
 
 
 
@@ -43,15 +44,10 @@ export const repay = async (
     wallet: any,
     programId: PublicKey,
     notifyCallback?: (message: object) => void | any,
-    marketMintAddress?: string,
-    marketMintAccountAddress?: string
+    customLending?: string,
+    marketMintAccountAddress?:string,
 ) => {
     const sendMessageCallback = notifyCallback ? notifyCallback : (message: object) => console.log(message)
-    sendMessageCallback({
-        message: "Repaing funds...",
-        description: "Please review transactions to approve.",
-        type: "warn",
-    });
     // treatment collateralAddress
     const collateralId = typeof collateralAddress === "string" ? collateralAddress : collateralAddress?.toBase58();
     // fetch collateralReserve account(withdrawReserve)
@@ -180,33 +176,36 @@ export const repay = async (
         )
     );
     // fetch market token Account
-    const marketReserve =  marketMintAccountAddress ? (await getReserveAccounts(connection, programId, marketMintAccountAddress)).pop() : undefined;
+    // const marketReserve =  marketMintAccountAddress ? (await getReserveAccounts(connection, programId, marketMintAccountAddress)).pop() : undefined;
 
     // fetch our mint token account
-    const ourMintDepositAccount = marketMintAddress ? await findOrCreateAccountByMint(
-        wallet.publicKey,
-        wallet.publicKey,
-        instructions,
-        cleanupInstructions,
-        accountRentExempt,
-        new PublicKey(marketMintAddress),
-        signers,
-        undefined,
-        userAccounts || undefined
-    ) : undefined
-
-    const [marketAuthority] = await PublicKey.findProgramAddress(
-        marketReserve?.info ? [ marketReserve.info.lendingMarket.toBuffer()] : [], // which account should be authority for market
-        programId
-    );
+    // const ourMintDepositAccount = marketMintAddress ? await findOrCreateAccountByMint(
+    //     wallet.publicKey,
+    //     wallet.publicKey,
+    //     instructions,
+    //     cleanupInstructions,
+    //     accountRentExempt,
+    //     new PublicKey(marketMintAddress),
+    //     signers,
+    //     undefined,
+    //     userAccounts || undefined
+    // ) : undefined
+    //
+    // const [marketAuthority] = await PublicKey.findProgramAddress(
+    //     marketReserve?.info ? [ marketReserve.info.lendingMarket.toBuffer()] : [], // which account should be authority for market
+    //     programId
+    // );
 
     // lending detail init entity
-    const userEntity = (marketMintAddress && marketMintAccountAddress)
-        ? await initUserEntity(connection, instructions, signers, wallet.publicKey, programId)
+    const userEntity = (customLending && marketMintAccountAddress)
+        ? await initUserEntity(connection, wallet, programId, customLending, marketMintAccountAddress, notifyCallback)
         : undefined
-
     // lending detail init entity end
-
+    sendMessageCallback({
+        message: "Repaing funds...",
+        description: "Please review transactions to approve.",
+        type: "warn",
+    });
     //fetch dex market area
     const dexMarketAddress = repayReserve.info.dexMarket
 
@@ -239,13 +238,6 @@ export const repay = async (
             obligationToken.pubkey,
             authority,
             programId,
-            ourMintDepositAccount,
-            marketReserve?.info.liquiditySupply,
-            marketAuthority,
-            marketReserve?.pubkey,
-            dexMarket.pubkey,
-            dexOrderBookSide,
-            memory,
             userEntity
         )
     );
@@ -259,12 +251,10 @@ export const repay = async (
         sendMessageCallback
     );
 
-    // save entity
-    userEntity && localStorage.setItem(INIT_USER_ENTITY, userEntity.toBase58());
-
     sendMessageCallback({
         message: "Funds repaid.",
         type: "success",
         description: `Transaction - ${tx.slice(0, 4)}...${tx.slice(-4)}`,
     });
+    if(userEntity){await updateBN(connection, wallet, repayReserve.pubkey, dexMarket.pubkey, dexOrderBookSide, memory, userEntity, repayReserve.info.lendingMarket, 4, programId, notifyCallback)}
 };

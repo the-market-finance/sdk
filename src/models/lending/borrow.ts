@@ -55,10 +55,6 @@ export const borrowInstruction = (
   dexOrderBookSide: PublicKey,
   memory: PublicKey,
   programId: PublicKey, // lending program id
-  ourMintDepositAccount?: PublicKey,
-  ourMintLiquiditySupply?: PublicKey,
-  marketAuthority?:PublicKey,
-  marketAddress?:PublicKey,
   userEntity?:PublicKey
 
 ): TransactionInstruction => {
@@ -106,19 +102,8 @@ export const borrowInstruction = (
     { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
   ];
 
-  // transfer our mints
-  if (ourMintDepositAccount && ourMintLiquiditySupply && marketAddress && marketAuthority) {
-    keys.push(
-        {pubkey: ourMintLiquiditySupply, isSigner: false, isWritable: true},
-        {pubkey: ourMintDepositAccount, isSigner: false, isWritable: true},
-        {pubkey: marketAuthority, isSigner: false, isWritable: false},
-        {pubkey: marketAddress, isSigner: false, isWritable: false},
-        // + 3 param for withdraw and repay
-        {pubkey: dexMarket!, isSigner: false, isWritable: false},
-        {pubkey: dexOrderBookSide!, isSigner: false, isWritable: false},
-        {pubkey: memory!, isSigner: false, isWritable: false},
-        {pubkey: userEntity!, isSigner: false, isWritable: false},
-    )
+  if (userEntity) {
+    keys.push({pubkey: userEntity, isSigner: false, isWritable: true})
   }
 
   return new TransactionInstruction({
